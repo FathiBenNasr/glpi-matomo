@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+   <name>Matomo Tag Manager</name>
+   <key>matomo</key>
+   <state>stable</state>
+   <logo>https://www.convergent.tn/assets/images/convergent-logo.png</logo>
+   <description>
+      <short>
+         <en>Inject a Matomo Tag Manager container into every GLPI page from the admin panel.</en>
+         <fr>Intégrez un conteneur Matomo Tag Manager dans toutes les pages GLPI depuis le panneau d'administration.</fr>
+      </short>
+      <long>
+         <en>
+This plugin allows you to integrate **Matomo Tag Manager** into your GLPI instance without editing any template or source file.
+
+Once installed and enabled, simply paste your MTM container URL in the plugin configuration page. The container script is then automatically injected into every GLPI page (authenticated users and login screen), enabling full visitor tracking, event collection, and tag management through your Matomo dashboard.
+
+**Features:**
+- Container URL configured entirely from the GLPI admin panel
+- Injects on all pages via the native `ADD_HEADER_TAG` hook
+- Zero performance overhead — asynchronous script loading
+- Compatible with GLPI 10.x and 11.x
+
+Developed by [Convergent Cloud Computing](https://www.convergent.tn) — cloud infrastructure, open-source integration, and cybersecurity solutions.
+         </en>
+         <fr>
+Ce plugin permet d'intégrer **Matomo Tag Manager** dans votre instance GLPI sans modifier aucun fichier source ou template.
+
+Une fois installé et activé, collez simplement l'URL de votre conteneur MTM dans la page de configuration du plugin. Le script du conteneur est alors automatiquement injecté dans toutes les pages GLPI (utilisateurs authentifiés et écran de connexion), permettant le suivi complet des visiteurs, la collecte d'événements et la gestion des tags via votre tableau de bord Matomo.
+
+**Fonctionnalités :**
+- URL du conteneur configurée entièrement depuis le panneau d'administration GLPI
+- Injection sur toutes les pages via le hook natif `ADD_HEADER_TAG`
+- Impact nul sur les performances — chargement asynchrone du script
+- Compatible GLPI 10.x et 11.x
+
+Développé par [Convergent Cloud Computing](https://www.convergent.tn) — infrastructure cloud, intégration open-source et cybersécurité.
+         </fr>
+      </long>
+   </description>
+   <homepage>https://www.convergent.tn</homepage>
+   <download>https://github.com/FathiBenNasr/glpi-matomo/releases</download>
+   <issues>https://github.com/FathiBenNasr/glpi-matomo/issues</issues>
+   <readme>https://github.com/FathiBenNasr/glpi-matomo/blob/main/README.md</readme>
+   <changelog>https://github.com/FathiBenNasr/glpi-matomo/blob/main/CHANGELOG.md</changelog>
+   <authors>
+      <author>Fathi Ben Nasr — Convergent Cloud Computing</author>
+   </authors>
+   <versions>
+      <version>
+         <num>1.0.0</num>
+         <compatibility>~10.0.0</compatibility>
+         <download_url>https://github.com/FathiBenNasr/glpi-matomo/releases/download/v1.0.0/glpi-matomo-1.0.0.tgz</download_url>
+      </version>
+   </versions>
+   <langs>
+      <lang>en_GB</lang>
+      <lang>fr_FR</lang>
+   </langs>
+   <license>GPL v2+</license>
+   <tags>
+      <en>
+         <tag>matomo</tag>
+         <tag>analytics</tag>
+         <tag>tracking</tag>
+         <tag>tag manager</tag>
+         <tag>statistics</tag>
+      </en>
+      <fr>
+         <tag>matomo</tag>
+         <tag>analytique</tag>
+         <tag>statistiques</tag>
+         <tag>tag manager</tag>
+         <tag>suivi</tag>
+      </fr>
+   </tags>
+   <screenshots>
+      <screenshot>https://raw.githubusercontent.com/FathiBenNasr/glpi-matomo/main/docs/screenshot-config-empty.png</screenshot>
+      <screenshot>https://raw.githubusercontent.com/FathiBenNasr/glpi-matomo/main/docs/screenshot-config-saved.png</screenshot>
+   </screenshots>
+</root>
