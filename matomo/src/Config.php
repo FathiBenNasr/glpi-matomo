@@ -5,6 +5,7 @@ namespace GlpiPlugin\Matomo;
 use CommonGLPI;
 use Config as GlpiConfig;
 use Html;
+use Plugin;
 use Session;
 
 class Config extends CommonGLPI
@@ -24,7 +25,7 @@ class Config extends CommonGLPI
         $config = GlpiConfig::getConfigurationValues('plugin:matomo', ['container_url']);
         $url    = $config['container_url'] ?? '';
 
-        echo '<form method="post" action="' . \Plugin::getWebDir('matomo') . '/front/config.php">';
+        echo '<form method="post" action="' . Plugin::getWebDir('matomo') . '/front/config.php">';
         echo '<table class="tab_cadre_fixe">';
         echo '<tr class="headerRow"><th colspan="2">' . __('Matomo Tag Manager Settings') . '</th></tr>';
 
@@ -52,13 +53,13 @@ class Config extends CommonGLPI
         Session::checkRight('config', UPDATE);
 
         $url = trim($post['container_url'] ?? '');
-        // Basic URL validation — must start with https://
-        if ($url !== '' && !str_starts_with((string) $url, 'https://')) {
+        if ($url !== '' && !str_starts_with($url, 'https://')) {
             Session::addMessageAfterRedirect(__('Container URL must start with https://'), false, ERROR);
             return;
         }
 
         GlpiConfig::setConfigurationValues('plugin:matomo', ['container_url' => $url]);
+        self::writeConfigJs($url);
         Session::addMessageAfterRedirect(__('Configuration saved'), false, INFO);
     }
 
@@ -66,5 +67,14 @@ class Config extends CommonGLPI
     {
         $config = GlpiConfig::getConfigurationValues('plugin:matomo', ['container_url']);
         return $config['container_url'] ?? '';
+    }
+
+    public static function writeConfigJs(string $url): void
+    {
+        $file = Plugin::getPhpDir('matomo') . '/public/js/mtm-config.js';
+        file_put_contents(
+            $file,
+            'window.MATOMO_CONTAINER_URL=' . json_encode($url) . ";\n"
+        );
     }
 }

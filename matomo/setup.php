@@ -16,7 +16,7 @@ function plugin_version_matomo(): array
         'version'      => PLUGIN_MATOMO_VERSION,
         'author'       => 'Convergent Cloud Computing',
         'license'      => 'GPL v2+',
-        'homepage'     => 'https://convergent.tn',
+        'homepage'     => 'https://www.convergent.tn',
         'requirements' => [
             'glpi' => [
                 'min' => PLUGIN_MATOMO_MIN_GLPI,
@@ -53,24 +53,18 @@ function plugin_init_matomo(): void
     }
 
     // Config page link in plugin list
-    $PLUGIN_HOOKS[Hooks::CONFIG_PAGE]['matomo'] = 'front/config.php';
+    $PLUGIN_HOOKS['config_page']['matomo'] = 'front/config.php';
 
     // Only inject on real HTTP requests
     if (!isset($_SERVER['HTTP_HOST'])) {
         return;
     }
 
-    $url = \GlpiPlugin\Matomo\Config::getContainerUrl();
-    if ($url === '') {
+    // Load config JS (sets window.MATOMO_CONTAINER_URL) then the loader
+    $config_js = \Plugin::getPhpDir('matomo') . '/public/js/mtm-config.js';
+    if (!is_file($config_js)) {
         return;
     }
 
-    // Inject container URL as a JS variable into <head>
-    $escaped = htmlspecialchars($url, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-    $PLUGIN_HOOKS[Hooks::ADD_HEADER_TAG]['matomo'] = [
-        '<script>window.MATOMO_CONTAINER_URL=' . json_encode($url) . ';</script>',
-    ];
-
-    // Load the MTM bootstrap script
-    $PLUGIN_HOOKS[Hooks::ADD_JAVASCRIPT]['matomo'] = ['js/mtm-loader.js'];
+    $PLUGIN_HOOKS['add_javascript']['matomo'] = ['js/mtm-config.js', 'js/mtm-loader.js'];
 }
