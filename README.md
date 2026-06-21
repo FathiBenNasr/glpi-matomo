@@ -32,6 +32,14 @@ Inject a [Matomo Tag Manager](https://matomo.org/guide/tag-manager/) container i
 |---------|-------------|
 | Container URL | Full URL to your MTM container JS (e.g. `https://stats.example.com/js/container_XXXXXXXX.js`) |
 
+## Screenshots
+
+Configuration page — before and after pasting the container URL:
+
+![Settings — empty](docs/screenshot-config-empty.png)
+
+![Settings — saved](docs/screenshot-config-saved.png)
+
 ## License
 
 This plugin is distributed under the [GNU GPL v2+](LICENSE) license.
