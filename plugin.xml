@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+   <name>Matomo Tag Manager</name>
+   <key>matomo</key>
+   <state>stable</state>
+   <description>
+      <short>
+         <en>Inject a Matomo Tag Manager container into every GLPI page from the admin panel.</en>
+         <fr>Intégrez un conteneur Matomo Tag Manager dans toutes les pages GLPI depuis le panneau d'administration.</fr>
+      </short>
+   </description>
+   <homepage>https://www.convergent.tn</homepage>
+   <authors>
+      <author>Fathi Ben Nasr — Convergent Cloud Computing</author>
+   </authors>
+   <versions>
+      <version>
+         <num>1.0.0</num>
+         <compatibility>~10.0.0</compatibility>
+      </version>
+   </versions>
+   <langs>
+      <lang>en_GB</lang>
+      <lang>fr_FR</lang>
+   </langs>
+   <license>GPL v2+</license>
+   <gitupdate>
+      <repo>https://github.com/FathiBenNasr/glpi-matomo.git</repo>
+      <ref>main</ref>
+      <ref_type>branch</ref_type>
+      <provider>github</provider>
+      <private>false</private>
+   </gitupdate>
+</root>
