@@ -3,7 +3,7 @@
    <name>Matomo Tag Manager</name>
    <key>matomo</key>
    <state>stable</state>
-   <logo>https://www.convergent.tn/assets/images/convergent-logo.png</logo>
+   <logo>https://raw.githubusercontent.com/FathiBenNasr/glpi-matomo/main/pics/matomo_64.png</logo>
    <description>
       <short>
          <en>Inject a Matomo Tag Manager container into every GLPI page from the admin panel.</en>
@@ -49,7 +49,7 @@ Développé par [Convergent Cloud Computing](https://www.convergent.tn) — infr
    <versions>
       <version>
          <num>1.0.0</num>
-         <compatibility>~10.0.0</compatibility>
+         <compatibility>~10.0 || ~11.0</compatibility>
          <download_url>https://github.com/FathiBenNasr/glpi-matomo/releases/download/v1.0.0/glpi-matomo-1.0.0.tgz</download_url>
       </version>
    </versions>
