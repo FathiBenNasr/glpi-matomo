@@ -20,6 +20,7 @@ use PHPUnit\Framework\TestCase;
 if (!defined('UPDATE')) { define('UPDATE', 2); }
 if (!defined('ERROR'))  { define('ERROR', 1); }
 if (!defined('INFO'))   { define('INFO', 0); }
+if (!defined('GLPI_VERSION')) { define('GLPI_VERSION', '11.0.7'); }
 
 if (!function_exists('__')) {
     function __(string $s, ?string $d = null): string { return $s; }
@@ -58,7 +59,8 @@ if (!class_exists('Plugin')) {
     class Plugin
     {
         public static string $phpDir = '';
-        public static function getWebDir(string $k): string { return '/plugins/' . $k; }
+        // Removed in GLPI 12: on GLPI 11+ the plugin must not call it at all.
+        public static function getWebDir(string $k): string { throw new RuntimeException('Plugin::getWebDir() called'); }
         public static function getPhpDir(string $k): string { return self::$phpDir; }
     }
 }
@@ -243,5 +245,25 @@ final class ConfigTest extends TestCase
     {
         $this->reset();
         self::assertSame('', MatomoConfig::getContainerUrl());
+    }
+
+    /**
+     * The form posts to root_doc/plugins/matomo without calling
+     * Plugin::getWebDir(), which GLPI 12 removes (the stub throws).
+     */
+    public function testConfigFormBuildsItsUrlWithoutGetWebDir(): void
+    {
+        $this->reset();
+        $GLOBALS['CFG_GLPI']['root_doc'] = '/glpi';
+        ob_start();
+        try {
+            MatomoConfig::showConfigForm();
+        } finally {
+            $html = (string) ob_get_clean();
+        }
+        self::assertTrue(
+            str_contains($html, 'action="/glpi/plugins/matomo/front/config.php"'),
+            'unexpected form action: ' . $html
+        );
     }
 }

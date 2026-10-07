@@ -25,7 +25,11 @@ class Config extends CommonGLPI
         $config = GlpiConfig::getConfigurationValues('plugin:matomo', ['container_url']);
         $url    = $config['container_url'] ?? '';
 
-        echo '<form method="post" action="' . Plugin::getWebDir('matomo') . '/front/config.php">';
+        // GLPI 11+ serves every plugin under /plugins/; Plugin::getWebDir() is gone in GLPI 12.
+        $webdir = defined('GLPI_VERSION') && version_compare(GLPI_VERSION, '11.0.0', '>=')
+            ? ($GLOBALS['CFG_GLPI']['root_doc'] ?? '') . '/plugins/matomo'
+            : Plugin::getWebDir('matomo');
+        echo '<form method="post" action="' . $webdir . '/front/config.php">';
         echo '<table class="tab_cadre_fixe">';
         echo '<tr class="headerRow"><th colspan="2">' . __('Matomo Tag Manager Settings') . '</th></tr>';
 
