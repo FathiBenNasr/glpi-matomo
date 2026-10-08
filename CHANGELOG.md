@@ -1,10 +1,33 @@
 # Changelog
 
+## [1.1.1] — 2026-10-08
+
+### Added
+- GLPI 12 line of 1.0.3: login screen tracked (switchable), optional identity of the
+  logged-in user (pseudonym or login, off by default), settings as `<meta>` tags — see 1.0.3.
+
 ## [1.1.0] — 2026-10-08
 
 ### Changed
 - **Requires GLPI 12.0** (min 12.0.0, max 12.99.99); the 11.x line stays on the previous minor.
 - No more `csrf_compliant` hook and no `Plugin::getWebDir()` fallback (both gone in GLPI 12).
+
+## [1.0.3] — 2026-10-08
+
+### Added
+- **The login screen is tracked too** (and the other anonymous pages), as the documentation
+  always claimed: GLPI only runs `add_javascript` on logged-in pages, so the plugin now also
+  uses `add_javascript_anonymous_page`. A setting switches it off.
+- **Optional identity of the logged-in user**, pushed to the Matomo Tag Manager data layer as
+  `glpiUserId` (map it to the *User ID* field of your Matomo configuration tag). Off by default.
+  Two modes: a *pseudonym* — HMAC-SHA256 of the GLPI user id keyed with the instance's own
+  GLPI key, stable but not reversible — or the *GLPI login* in clear (personal data: inform
+  your users and check your legal basis first). Never sent on anonymous pages.
+
+### Changed
+- Settings reach the browser as `<meta>` tags through GLPI's header-tag hooks, escaped by
+  GLPI's template. The plugin no longer writes `public/js/mtm-config.js` into its own code
+  directory at save time; a leftover copy from an older version is simply no longer loaded.
 
 ## [1.0.2] — 2026-10-08
 
