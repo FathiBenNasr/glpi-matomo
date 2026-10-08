@@ -19,7 +19,7 @@ Once installed and enabled, simply paste your MTM container URL in the plugin co
 - Container URL configured entirely from the GLPI admin panel
 - Login screen tracked too (switchable, since 1.0.3 / 1.1.1)
 - Optional identity of the logged-in user, pushed to the data layer as `glpiUserId`: non-reversible pseudonym or GLPI login, off by default (since 1.0.3 / 1.1.1)
-- Settings passed as escaped `<meta>` tags through GLPI's native plugin hooks
+- Settings passed as escaped `&lt;meta&gt;` tags through GLPI's native plugin hooks
 - Zero performance overhead — asynchronous script loading
 - Compatible with GLPI 10.x (1.0.0), 11.x (1.0.x) and 12.x (1.1.x)
 
@@ -34,7 +34,7 @@ Une fois installé et activé, collez simplement l'URL de votre conteneur MTM da
 - URL du conteneur configurée entièrement depuis le panneau d'administration GLPI
 - Écran de connexion suivi lui aussi (désactivable, depuis 1.0.3 / 1.1.1)
 - Identité de l'utilisateur connecté en option, poussée dans la couche de données sous `glpiUserId` : pseudonyme non réversible ou identifiant GLPI, désactivée par défaut (depuis 1.0.3 / 1.1.1)
-- Réglages transmis en balises `<meta>` échappées, par les hooks natifs des greffons GLPI
+- Réglages transmis en balises `&lt;meta&gt;` échappées, par les hooks natifs des greffons GLPI
 - Impact nul sur les performances — chargement asynchrone du script
 - Compatible GLPI 10.x (1.0.0), 11.x (1.0.x) et 12.x (1.1.x)
 
