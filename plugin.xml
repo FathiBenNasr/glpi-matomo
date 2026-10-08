@@ -5,8 +5,8 @@
    <state>stable</state>
    <description>
       <short>
-         <en>Inject a Matomo Tag Manager container into every GLPI page from the admin panel.</en>
-         <fr>Intégrez un conteneur Matomo Tag Manager dans toutes les pages GLPI depuis le panneau d'administration.</fr>
+         <en>Inject a Matomo Tag Manager container into the pages of logged-in GLPI users, from the admin panel.</en>
+         <fr>Intégrez un conteneur Matomo Tag Manager dans les pages des utilisateurs connectés à GLPI, depuis le panneau d'administration.</fr>
       </short>
    </description>
    <homepage>https://www.convergent.tn</homepage>

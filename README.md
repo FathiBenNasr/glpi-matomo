@@ -1,12 +1,12 @@
-# Matomo Tag Manager — inject a Matomo container into every GLPI page
+# Matomo Tag Manager — inject a Matomo container into GLPI pages
 
-Inject a [Matomo Tag Manager](https://matomo.org/guide/tag-manager/) container into every GLPI page with zero code changes — just paste your container URL in the plugin settings. The container script is then loaded on all pages (authenticated screens and the login screen), enabling visitor tracking, event collection and tag management through your Matomo dashboard.
+Inject a [Matomo Tag Manager](https://matomo.org/guide/tag-manager/) container into the pages of logged-in GLPI users with zero code changes — just paste your container URL in the plugin settings. The container script is then loaded on every page shown to a logged-in user (standard and simplified interfaces), enabling visitor tracking, event collection and tag management through your Matomo dashboard.
 
 ## Features
 
-- Loads your Matomo Tag Manager container on **every** GLPI page (authenticated pages and the login screen)
+- Loads your Matomo Tag Manager container on every page shown to a **logged-in** user (standard and simplified interfaces). The login screen and other anonymous pages are **not** tracked.
 - Container URL configured entirely from the GLPI admin panel — no file or template editing
-- Injected via the native `$PLUGIN_HOOKS` header hook + one small static JS loader; asynchronous, zero perceptible overhead
+- Injected via GLPI's native `add_javascript` plugin hook + one small static JS loader; asynchronous, zero perceptible overhead
 - No custom database table — the single setting is stored in GLPI's own configuration store
 - French + English interface
 
@@ -49,7 +49,7 @@ Configuration requires the GLPI core **`config: UPDATE`** right (typically the f
 
 ## Architecture
 
-- On every request, the plugin's `$PLUGIN_HOOKS` header hook outputs a `<script>` tag pointing at a tiny static loader (`public/js/mtm-loader.js` / `mtm-config.js`), which in turn loads your configured Matomo container URL.
+- On every page rendered for a logged-in user, GLPI's `add_javascript` hook includes two tiny static scripts (`public/js/mtm-config.js` / `mtm-loader.js`), which in turn load your configured Matomo container URL. Anonymous pages (login screen) use a different hook and are not covered.
 - The container URL is read from GLPI's core config (`Config::getConfigurationValues('plugin:matomo', ['container_url'])`) — no plugin database table, no per-asset data.
 - The plugin is `csrf_compliant`; the configuration form posts through GLPI's CSRF-protected front controller.
 

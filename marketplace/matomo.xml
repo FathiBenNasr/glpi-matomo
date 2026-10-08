@@ -6,18 +6,19 @@
    <logo>https://raw.githubusercontent.com/FathiBenNasr/glpi-matomo/main/pics/matomo_64.png</logo>
    <description>
       <short>
-         <en>Inject a Matomo Tag Manager container into every GLPI page from the admin panel.</en>
-         <fr>Intégrez un conteneur Matomo Tag Manager dans toutes les pages GLPI depuis le panneau d'administration.</fr>
+         <en>Inject a Matomo Tag Manager container into the pages of logged-in GLPI users, from the admin panel.</en>
+         <fr>Intégrez un conteneur Matomo Tag Manager dans les pages des utilisateurs connectés à GLPI, depuis le panneau d'administration.</fr>
       </short>
       <long>
          <en>
 This plugin allows you to integrate **Matomo Tag Manager** into your GLPI instance without editing any template or source file.
 
-Once installed and enabled, simply paste your MTM container URL in the plugin configuration page. The container script is then automatically injected into every GLPI page (authenticated users and login screen), enabling full visitor tracking, event collection, and tag management through your Matomo dashboard.
+Once installed and enabled, simply paste your MTM container URL in the plugin configuration page. The container script is then automatically injected into every page shown to a logged-in user (standard and simplified interfaces), enabling full visitor tracking, event collection, and tag management through your Matomo dashboard.
 
 **Features:**
 - Container URL configured entirely from the GLPI admin panel
-- Injects on all pages via the native `ADD_HEADER_TAG` hook
+- Injected via GLPI's native `add_javascript` plugin hook
+- The login screen and other anonymous pages are not tracked
 - Zero performance overhead — asynchronous script loading
 - Compatible with GLPI 10.x (1.0.0), 11.x (1.0.x) and 12.x (1.1.x)
 
@@ -26,11 +27,12 @@ Developed by [Convergent Cloud Computing](https://www.convergent.tn) — cloud i
          <fr>
 Ce plugin permet d'intégrer **Matomo Tag Manager** dans votre instance GLPI sans modifier aucun fichier source ou template.
 
-Une fois installé et activé, collez simplement l'URL de votre conteneur MTM dans la page de configuration du plugin. Le script du conteneur est alors automatiquement injecté dans toutes les pages GLPI (utilisateurs authentifiés et écran de connexion), permettant le suivi complet des visiteurs, la collecte d'événements et la gestion des tags via votre tableau de bord Matomo.
+Une fois installé et activé, collez simplement l'URL de votre conteneur MTM dans la page de configuration du plugin. Le script du conteneur est alors automatiquement injecté dans toutes les pages affichées à un utilisateur connecté (interfaces standard et simplifiée), permettant le suivi complet des visiteurs, la collecte d'événements et la gestion des tags via votre tableau de bord Matomo.
 
 **Fonctionnalités :**
 - URL du conteneur configurée entièrement depuis le panneau d'administration GLPI
-- Injection sur toutes les pages via le hook natif `ADD_HEADER_TAG`
+- Injection par le hook natif `add_javascript` des greffons GLPI
+- L'écran de connexion et les autres pages anonymes ne sont pas suivis
 - Impact nul sur les performances — chargement asynchrone du script
 - Compatible GLPI 10.x (1.0.0), 11.x (1.0.x) et 12.x (1.1.x)
 
