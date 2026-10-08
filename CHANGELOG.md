@@ -6,6 +6,13 @@
 - **Requires GLPI 12.0** (min 12.0.0, max 12.99.99); the 11.x line stays on the previous minor.
 - No more `csrf_compliant` hook and no `Plugin::getWebDir()` fallback (both gone in GLPI 12).
 
+## [1.0.2] — 2026-10-08
+
+### Fixed
+- Declared requirements now match the code: GLPI **11.x** (min 11.0.0, max 11.99.99). Since 1.0.1 the
+  configuration page no longer includes `inc/includes.php`, which GLPI 10 still needs; GLPI 10 users stay on
+  1.0.0, GLPI 12 users get 1.1.0.
+
 ## [1.0.1] — 2026-10-08
 
 ### Fixed
