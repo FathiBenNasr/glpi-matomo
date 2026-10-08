@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.1] — 2026-10-08
+
+### Fixed
+- GLPI 12 readiness, still compatible with GLPI 11: no `inc/includes.php` in web entry points (useless since GLPI 11, deprecated in GLPI 12).
+
 ## [1.0.0] — 2026-05-15
 
 ### Added
