@@ -2,9 +2,11 @@
 /**
  * Matomo Tag Manager — configuration logic.
  *
- * The plugin injects a third-party script tag into every GLPI page, so its two
- * guards matter more than its size suggests: the container URL must be HTTPS,
- * and it must reach the browser as data, never as executable JavaScript.
+ * The plugin injects a third-party script into GLPI pages, so its guards matter
+ * more than its size suggests: the container URL must be HTTPS, settings reach
+ * the browser as escaped <meta> data (never as JavaScript), and the user's
+ * identity is only sent when an administrator opted in — as a non-reversible
+ * pseudonym unless the login itself was explicitly chosen.
  *
  * No DB, no GLPI core: the handful of core classes the plugin touches are
  * stubbed below.
@@ -91,51 +93,49 @@ use GlpiPlugin\Matomo\Config as MatomoConfig;
 
 final class ConfigTest extends TestCase
 {
+    private const SECRET = 'test-secret-0123456789abcdef';
+
     /** Fresh state for every test: the stubs are static. */
-    private function reset(): string
+    private function reset(): void
     {
-        Config::$store          = [];
-        Session::$messages      = [];
-        Session::$rightGranted  = true;
-        $dir = sys_get_temp_dir() . '/matomo-test-' . getmypid();
-        @mkdir($dir . '/public/js', 0700, true);
-        @unlink($dir . '/public/js/mtm-config.js');
-        Plugin::$phpDir = $dir;
-        return $dir;
+        Config::$store         = [];
+        Session::$messages     = [];
+        Session::$rightGranted = true;
     }
 
-    private function writtenJs(string $dir): string
+    private function settings(array $over = []): array
     {
-        $f = $dir . '/public/js/mtm-config.js';
-        return is_file($f) ? (string) file_get_contents($f) : '';
+        return array_merge([
+            'container_url'   => 'https://stats.example.com/js/container_X.js',
+            'track_anonymous' => true,
+            'user_id_mode'    => MatomoConfig::USER_ID_NONE,
+        ], $over);
     }
 
-    /**
-     * The value as a JavaScript engine would read it: the string literal is
-     * extracted and decoded, so the assertions talk about what the browser
-     * ends up with rather than about the escaping used to get it there.
-     */
-    private function decodedJsValue(string $dir): ?string
+    /** @return array<string, string> meta name => content */
+    private static function metas(array $tags): array
     {
-        if (!preg_match('/^window\\.MATOMO_CONTAINER_URL=(.*);\\n$/s', $this->writtenJs($dir), $m)) {
-            return null;
+        $out = [];
+        foreach ($tags as $t) {
+            self::assertSame('meta', $t['tag']);
+            $out[$t['properties']['name']] = $t['properties']['content'];
         }
-        $decoded = json_decode($m[1], true);
-        return is_string($decoded) ? $decoded : null;
+        return $out;
     }
 
+    // ------------------------------------------------------------ saving --
+
     /**
-     * A plain-HTTP container URL is refused. This is the whole point of the
-     * guard: the script is loaded into every authenticated GLPI page, so an
-     * http:// source is a downgrade an attacker on the path can rewrite.
+     * A plain-HTTP container URL is refused: the script runs in every
+     * authenticated GLPI page, an http:// source is a downgrade an attacker on
+     * the path can rewrite.
      */
     public function testHttpUrlIsRejectedAndNotStored(): void
     {
-        $dir = $this->reset();
+        $this->reset();
         MatomoConfig::saveConfig(['container_url' => 'http://stats.example.com/js/container_abc.js']);
 
         self::assertSame([], Config::$store, 'a rejected URL must not be persisted');
-        self::assertSame('', $this->writtenJs($dir), 'a rejected URL must not reach the JS file');
         self::assertSame(ERROR, Session::$messages[0][0] ?? null, 'the user must be told it failed');
     }
 
@@ -149,66 +149,44 @@ final class ConfigTest extends TestCase
         }
     }
 
-    /** The nominal case still works, and reaches both the config and the file. */
-    public function testHttpsUrlIsStoredAndWritten(): void
+    public function testHttpsUrlAndOptionsAreStored(): void
     {
-        $dir = $this->reset();
+        $this->reset();
         $url = 'https://stats.convergent.tn/js/container_XYZ.js';
-        MatomoConfig::saveConfig(['container_url' => $url]);
+        MatomoConfig::saveConfig(['container_url' => $url, 'track_anonymous' => '0', 'user_id_mode' => 'pseudonym']);
 
-        self::assertSame($url, MatomoConfig::getContainerUrl());
-        self::assertSame($url, $this->decodedJsValue($dir), 'the browser must read back the exact URL');
+        self::assertSame(
+            ['container_url' => $url, 'track_anonymous' => false, 'user_id_mode' => 'pseudonym'],
+            MatomoConfig::getSettings()
+        );
         self::assertSame(INFO, Session::$messages[0][0] ?? null);
     }
 
     /** An empty value is a legitimate way to switch the tracking off. */
     public function testEmptyUrlClearsTheConfiguration(): void
     {
-        $dir = $this->reset();
+        $this->reset();
         MatomoConfig::saveConfig(['container_url' => '  ']);
-
         self::assertSame('', MatomoConfig::getContainerUrl());
-        self::assertSame("window.MATOMO_CONTAINER_URL=\"\";\n", $this->writtenJs($dir));
     }
 
-    /**
-     * The URL is written into a .js file. If it were concatenated raw, a stored
-     * value could close the string and append arbitrary JavaScript — a stored
-     * XSS on every page of GLPI. json_encode is what prevents it; this test
-     * fails the day someone "simplifies" it into string concatenation.
-     */
-    public function testWrittenJsCannotBeEscapedFromTheStringLiteral(): void
+    /** Whitelist: an unknown identity mode is refused, nothing is written. */
+    public function testUnknownUserIdModeIsRejected(): void
     {
-        $dir = $this->reset();
-        $payload = 'https://x/a.js";alert(document.cookie);//';
-        MatomoConfig::writeConfigJs($payload);
-
-        // The payload survives as *data*: it decodes back to itself, which is
-        // only possible if the quote never terminated the literal early.
-        self::assertSame($payload, $this->decodedJsValue($dir));
+        $this->reset();
+        MatomoConfig::saveConfig(['container_url' => 'https://s/c.js', 'user_id_mode' => 'email']);
+        self::assertSame([], Config::$store);
+        self::assertSame(ERROR, Session::$messages[0][0] ?? null);
     }
 
-    /** A </script> in the value must not be able to close the surrounding tag. */
-    public function testWrittenJsEscapesClosingScriptTag(): void
+    /** An unchecked box posts only the hidden "0"; anything but "1" is off. */
+    public function testTrackAnonymousIsStrictlyBoolean(): void
     {
-        $dir = $this->reset();
-        $payload = 'https://x/</script><script>alert(1)</script>';
-        MatomoConfig::writeConfigJs($payload);
-
-        self::assertStringNotContainsString('</script>', $this->writtenJs($dir));
-        self::assertSame($payload, $this->decodedJsValue($dir));
-    }
-
-    /** The written file is always valid, parseable JavaScript. */
-    public function testWrittenJsIsSyntacticallyValid(): void
-    {
-        $dir = $this->reset();
-        MatomoConfig::writeConfigJs('https://x/a.js?q="\\\'&<>');
-
-        self::assertMatchesRegularExpression(
-            '/^window\.MATOMO_CONTAINER_URL=".*";\n$/s',
-            $this->writtenJs($dir)
-        );
+        foreach (['0' => false, '1' => true, 'yes' => false, '' => false] as $posted => $expected) {
+            $this->reset();
+            MatomoConfig::saveConfig(['container_url' => 'https://s/c.js', 'track_anonymous' => (string) $posted]);
+            self::assertSame($expected, MatomoConfig::getSettings()['track_anonymous'], "posted '{$posted}'");
+        }
     }
 
     /**
@@ -217,7 +195,7 @@ final class ConfigTest extends TestCase
      */
     public function testSavingRequiresTheConfigurationRight(): void
     {
-        $dir = $this->reset();
+        $this->reset();
         Session::$rightGranted = false;
 
         $denied = false;
@@ -229,23 +207,116 @@ final class ConfigTest extends TestCase
 
         self::assertTrue($denied, 'the right must be checked');
         self::assertSame([], Config::$store, 'nothing may be written without the right');
-        self::assertSame('', $this->writtenJs($dir));
     }
 
-    /** A missing key must not raise; it behaves like an empty value. */
-    public function testMissingKeyIsTreatedAsEmpty(): void
+    // ---------------------------------------------------------- defaults --
+
+    /** An upgraded install (only container_url stored) gets the safe defaults. */
+    public function testDefaultsAfterUpgrade(): void
     {
         $this->reset();
-        MatomoConfig::saveConfig([]);
-        self::assertSame('', MatomoConfig::getContainerUrl());
+        Config::$store['plugin:matomo'] = ['container_url' => 'https://s/c.js'];
+        self::assertSame(
+            ['container_url' => 'https://s/c.js', 'track_anonymous' => true, 'user_id_mode' => 'none'],
+            MatomoConfig::getSettings()
+        );
     }
 
-    /** Reading a never-configured plugin returns '' rather than failing. */
+    /** A tampered stored mode falls back to "none", never to sending something. */
+    public function testCorruptStoredModeFallsBackToNone(): void
+    {
+        $this->reset();
+        Config::$store['plugin:matomo'] = ['container_url' => 'https://s/c.js', 'user_id_mode' => 'everything'];
+        self::assertSame('none', MatomoConfig::getSettings()['user_id_mode']);
+    }
+
     public function testUnconfiguredPluginReturnsEmptyUrl(): void
     {
         $this->reset();
         self::assertSame('', MatomoConfig::getContainerUrl());
     }
+
+    // ---------------------------------------------------------- identity --
+
+    public function testNoIdentityByDefault(): void
+    {
+        self::assertSame('', MatomoConfig::userIdFor('none', 42, 'jdupont', self::SECRET));
+    }
+
+    public function testPseudonymIsStableAndDistinctPerUser(): void
+    {
+        $a = MatomoConfig::userIdFor('pseudonym', 42, 'jdupont', self::SECRET);
+        self::assertSame($a, MatomoConfig::userIdFor('pseudonym', 42, 'jdupont', self::SECRET), 'stable');
+        self::assertNotSame($a, MatomoConfig::userIdFor('pseudonym', 43, 'jdupont', self::SECRET), 'per user');
+        self::assertSame(1, preg_match('/^[0-9a-f]{32}$/', $a), 'opaque hex: ' . $a);
+    }
+
+    /** Neither the id, the login nor a plain hash of the id can be read back. */
+    public function testPseudonymRevealsNeitherIdNorLogin(): void
+    {
+        $p = MatomoConfig::userIdFor('pseudonym', 42, 'jdupont', self::SECRET);
+        self::assertStringNotContainsString('jdupont', $p);
+        self::assertNotSame(substr(hash('sha256', '42'), 0, 32), $p, 'must be keyed, not a bare hash');
+        self::assertNotSame($p, MatomoConfig::userIdFor('pseudonym', 42, 'jdupont', 'another-key'), 'keyed');
+    }
+
+    /** Fail closed: no key → no pseudonym, and above all no fallback to the login. */
+    public function testPseudonymWithoutKeySendsNothing(): void
+    {
+        self::assertSame('', MatomoConfig::userIdFor('pseudonym', 42, 'jdupont', ''));
+    }
+
+    public function testLoginModeSendsTheLogin(): void
+    {
+        self::assertSame('jdupont', MatomoConfig::userIdFor('login', 42, 'jdupont', self::SECRET));
+    }
+
+    public function testAnonymousSessionHasNoIdentity(): void
+    {
+        foreach (['pseudonym', 'login'] as $mode) {
+            self::assertSame('', MatomoConfig::userIdFor($mode, 0, '', self::SECRET), $mode);
+        }
+    }
+
+    // ------------------------------------------------------- header tags --
+
+    public function testLoggedInPagesCarryContainerAndIdentity(): void
+    {
+        $m = self::metas(MatomoConfig::headerTags($this->settings(), false, 'abc123'));
+        self::assertSame(
+            ['glpi-matomo-container' => 'https://stats.example.com/js/container_X.js', 'glpi-matomo-uid' => 'abc123'],
+            $m
+        );
+    }
+
+    public function testNoIdentityTagWhenThereIsNone(): void
+    {
+        $m = self::metas(MatomoConfig::headerTags($this->settings(), false, ''));
+        self::assertSame(['glpi-matomo-container'], array_keys($m));
+    }
+
+    /** The login screen is tracked by default, and never carries an identity. */
+    public function testAnonymousPagesCarryTheContainerOnly(): void
+    {
+        $m = self::metas(MatomoConfig::headerTags($this->settings(), true, 'abc123'));
+        self::assertSame(['glpi-matomo-container'], array_keys($m));
+    }
+
+    public function testAnonymousTrackingCanBeSwitchedOff(): void
+    {
+        self::assertSame([], MatomoConfig::headerTags($this->settings(['track_anonymous' => false]), true, ''));
+        self::assertNotSame([], MatomoConfig::headerTags($this->settings(['track_anonymous' => false]), false, ''));
+    }
+
+    /** Defence in depth: a non-https URL that reached the store is never emitted. */
+    public function testNonHttpsStoredUrlIsNeverEmitted(): void
+    {
+        foreach (['', 'http://x/c.js', 'javascript:alert(1)'] as $url) {
+            self::assertSame([], MatomoConfig::headerTags($this->settings(['container_url' => $url]), false, 'u'), $url);
+        }
+    }
+
+    // -------------------------------------------------------------- form --
 
     /**
      * The form posts to root_doc/plugins/matomo without calling
@@ -265,5 +336,19 @@ final class ConfigTest extends TestCase
             str_contains($html, 'action="/glpi/plugins/matomo/front/config.php"'),
             'unexpected form action: ' . $html
         );
+    }
+
+    /** A stored URL is echoed back escaped in the form (no attribute break-out). */
+    public function testConfigFormEscapesTheStoredUrl(): void
+    {
+        $this->reset();
+        Config::$store['plugin:matomo'] = ['container_url' => 'https://x/"><script>alert(1)</script>'];
+        ob_start();
+        try {
+            MatomoConfig::showConfigForm();
+        } finally {
+            $html = (string) ob_get_clean();
+        }
+        self::assertStringNotContainsString('<script>alert(1)', $html);
     }
 }

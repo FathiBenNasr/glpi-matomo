@@ -2,10 +2,11 @@
 
 /**
  * Matomo Tag Manager plugin for GLPI
- * Injects a Matomo Tag Manager container on every GLPI page.
+ * Injects a Matomo Tag Manager container into GLPI pages (logged-in pages, and
+ * optionally the login screen), optionally with the identity of the user.
  */
 
-define('PLUGIN_MATOMO_VERSION', '1.0.2');
+define('PLUGIN_MATOMO_VERSION', '1.0.3');
 define('PLUGIN_MATOMO_MIN_GLPI', '11.0.0');
 define('PLUGIN_MATOMO_MAX_GLPI', '11.99.99');
 
@@ -60,11 +61,28 @@ function plugin_init_matomo(): void
         return;
     }
 
-    // Load config JS (sets window.MATOMO_CONTAINER_URL) then the loader
-    $config_js = \Plugin::getPhpDir('matomo') . '/public/js/mtm-config.js';
-    if (!is_file($config_js)) {
+    $settings = \GlpiPlugin\Matomo\Config::getSettings();
+    if ($settings['container_url'] === '') {
         return;
     }
 
-    $PLUGIN_HOOKS['add_javascript']['matomo'] = ['js/mtm-config.js', 'js/mtm-loader.js'];
+    // Logged-in pages: the session is already started when plugins initialise.
+    $users_id = (int) (\Session::getLoginUserID() ?: 0);
+    $user_id  = '';
+    if ($users_id > 0 && $settings['user_id_mode'] !== \GlpiPlugin\Matomo\Config::USER_ID_NONE) {
+        $user_id = \GlpiPlugin\Matomo\Config::userIdFor(
+            $settings['user_id_mode'],
+            $users_id,
+            (string) ($_SESSION['glpiname'] ?? ''),
+            (string) (new \GLPIKey())->get()
+        );
+    }
+    $PLUGIN_HOOKS['add_header_tag']['matomo'] = \GlpiPlugin\Matomo\Config::headerTags($settings, false, $user_id);
+    $PLUGIN_HOOKS['add_javascript']['matomo'] = ['js/mtm-loader.js'];
+
+    // Anonymous pages (login screen, password reset…) use their own hooks.
+    $PLUGIN_HOOKS['add_header_tag_anonymous_page']['matomo'] = \GlpiPlugin\Matomo\Config::headerTags($settings, true, '');
+    if ($settings['track_anonymous']) {
+        $PLUGIN_HOOKS['add_javascript_anonymous_page']['matomo'] = ['js/mtm-loader.js'];
+    }
 }
