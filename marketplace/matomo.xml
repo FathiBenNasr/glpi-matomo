@@ -19,7 +19,7 @@ Once installed and enabled, simply paste your MTM container URL in the plugin co
 - Container URL configured entirely from the GLPI admin panel
 - Injects on all pages via the native `ADD_HEADER_TAG` hook
 - Zero performance overhead — asynchronous script loading
-- Compatible with GLPI 10.x and 11.x
+- Compatible with GLPI 10.x (1.0.0), 11.x (1.0.x) and 12.x (1.1.x)
 
 Developed by [Convergent Cloud Computing](https://www.convergent.tn) — cloud infrastructure, open-source integration, and cybersecurity solutions.
          </en>
@@ -32,7 +32,7 @@ Une fois installé et activé, collez simplement l'URL de votre conteneur MTM da
 - URL du conteneur configurée entièrement depuis le panneau d'administration GLPI
 - Injection sur toutes les pages via le hook natif `ADD_HEADER_TAG`
 - Impact nul sur les performances — chargement asynchrone du script
-- Compatible GLPI 10.x et 11.x
+- Compatible GLPI 10.x (1.0.0), 11.x (1.0.x) et 12.x (1.1.x)
 
 Développé par [Convergent Cloud Computing](https://www.convergent.tn) — infrastructure cloud, intégration open-source et cybersécurité.
          </fr>
@@ -48,8 +48,18 @@ Développé par [Convergent Cloud Computing](https://www.convergent.tn) — infr
    </authors>
    <versions>
       <version>
+         <num>1.1.0</num>
+         <compatibility>~12.0</compatibility>
+         <download_url>https://github.com/FathiBenNasr/glpi-matomo/releases/download/v1.1.0/glpi-matomo-1.1.0.tgz</download_url>
+      </version>
+      <version>
+         <num>1.0.2</num>
+         <compatibility>~11.0</compatibility>
+         <download_url>https://github.com/FathiBenNasr/glpi-matomo/releases/download/v1.0.2/glpi-matomo-1.0.2.tgz</download_url>
+      </version>
+      <version>
          <num>1.0.0</num>
-         <compatibility>~10.0 || ~11.0</compatibility>
+         <compatibility>~10.0</compatibility>
          <download_url>https://github.com/FathiBenNasr/glpi-matomo/releases/download/v1.0.0/glpi-matomo-1.0.0.tgz</download_url>
       </version>
    </versions>

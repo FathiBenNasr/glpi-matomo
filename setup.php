@@ -5,9 +5,9 @@
  * Injects a Matomo Tag Manager container on every GLPI page.
  */
 
-define('PLUGIN_MATOMO_VERSION', '1.0.1');
-define('PLUGIN_MATOMO_MIN_GLPI', '10.0.0');
-define('PLUGIN_MATOMO_MAX_GLPI', '12.0.0');
+define('PLUGIN_MATOMO_VERSION', '1.0.2');
+define('PLUGIN_MATOMO_MIN_GLPI', '11.0.0');
+define('PLUGIN_MATOMO_MAX_GLPI', '11.99.99');
 
 function plugin_version_matomo(): array
 {

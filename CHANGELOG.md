@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2] — 2026-10-08
+
+### Fixed
+- Declared requirements now match the code: GLPI **11.x** (min 11.0.0, max 11.99.99). Since 1.0.1 the
+  configuration page no longer includes `inc/includes.php`, which GLPI 10 still needs; GLPI 10 users stay on
+  1.0.0, GLPI 12 users get 1.1.0.
+
 ## [1.0.1] — 2026-10-08
 
 ### Fixed
