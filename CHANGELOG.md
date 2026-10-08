@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.1.0] — 2026-10-08
+
+### Changed
+- **Requires GLPI 12.0** (min 12.0.0, max 12.99.99); the 11.x line stays on the previous minor.
+- No more `csrf_compliant` hook and no `Plugin::getWebDir()` fallback (both gone in GLPI 12).
+
 ## [1.0.1] — 2026-10-08
 
 ### Fixed
