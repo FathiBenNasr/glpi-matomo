@@ -28,8 +28,14 @@ final class SetupTest extends TestCase
      * @param array<string, string> $stored  plugin:matomo configuration values
      * @param list<string>          $rights  "module:right" granted to the session
      */
-    private function init(string $uri, int $users_id = 0, array $stored = [], array $rights = []): array
-    {
+    private function init(
+        string $uri,
+        int $users_id = 0,
+        array $stored = [],
+        array $rights = [],
+        array $profiles = [],
+        string $referer = ''
+    ): array {
         global $PLUGIN_HOOKS;
         $PLUGIN_HOOKS = [];
 
@@ -39,12 +45,17 @@ final class SetupTest extends TestCase
         Session::$haveRightThrows = false;
         Plugin::$active           = true;
         GLPIKey::$getCalls        = 0;
+        ProfileRight::$byProfile  = $profiles;
 
         $saved = $_SERVER;
         $savedSession = $_SESSION ?? [];
         $_SERVER['HTTP_HOST']   = 'glpi.example';
         $_SERVER['REQUEST_URI'] = $uri;
         $_SESSION['glpiname']   = 'jdupont';
+        $_SESSION['glpiprofiles'] = array_fill_keys(array_keys($profiles), ['name' => 'p']);
+        if ($referer !== '') {
+            $_SERVER['HTTP_REFERER'] = $referer;
+        }
         try {
             plugin_init_matomo();
         } finally {
@@ -119,7 +130,42 @@ final class SetupTest extends TestCase
         }
     }
 
+    /**
+     * The page reached from a reset link (the result of the reset form, the login
+     * screen it redirects to) would report the token as the referrer (urlref).
+     */
+    public function testNoTrackingWhenTheReferrerCarriesASecret(): void
+    {
+        $ref = 'https://glpi.example/front/lostpassword.php?password_forget_token=0123456789abcdef';
+        $h = $this->init('/front/lostpassword.php', 0, ['track_anonymous' => '1'], [], [], $ref);
+        self::assertFalse(isset($h['add_javascript_anonymous_page']));
+        $h = $this->init('/front/central.php', 42, [], [], [], $ref);
+        self::assertFalse(isset($h['add_javascript']));
+        // A harmless referrer changes nothing.
+        $h = $this->init('/front/central.php', 42, [], [], [], 'https://glpi.example/front/ticket.php?id=3');
+        self::assertTrue(self::loads($h, 'add_javascript'));
+    }
+
     // ------------------------------------------------------------ M-12 --
+
+    /**
+     * A super-administrator browsing under the self-service profile can switch back
+     * to the admin profile from that very page: any profile of the session counts.
+     */
+    public function testAdministratorUnderSelfServiceProfileGetsNoContainer(): void
+    {
+        foreach (['config', 'profile', 'user'] as $module) {
+            $h = $this->init('/front/helpdesk.public.php', 2, [], [], [
+                1 => ['config' => 0, 'profile' => 0, 'user' => 0],   // self-service, active
+                4 => [$module => 31],                                // super-admin, reachable
+            ]);
+            self::assertFalse(isset($h['add_javascript']), $module);
+            self::assertFalse(isset($h['add_header_tag']), $module);
+        }
+        // READ only on another profile is not an escalation right.
+        $h = $this->init('/front/helpdesk.public.php', 2, [], [], [1 => [], 4 => ['config' => 1]]);
+        self::assertTrue(self::loads($h, 'add_javascript'));
+    }
 
     /** An administrator never runs the third-party container, on any page. */
     public function testPrivilegedSessionGetsNoContainer(): void
@@ -134,7 +180,8 @@ final class SetupTest extends TestCase
     /** Administration pages never get it either, whatever the session. */
     public function testAdministrationPagesGetNoContainer(): void
     {
-        foreach (['/front/user.form.php?id=2', '/front/preference.php', '/plugins/matomo/front/config.php'] as $uri) {
+        foreach (['/front/user.form.php?id=2', '/front/preference.php', '/plugins/matomo/front/config.php',
+                  '/front/%63onfig.form.php', '/front//profile.form.php', '/front/./user.form.php'] as $uri) {
             $h = $this->init($uri, 42, ['track_anonymous' => '1']);
             self::assertFalse(isset($h['add_javascript']), $uri);
             self::assertFalse(isset($h['add_javascript_anonymous_page']), $uri);

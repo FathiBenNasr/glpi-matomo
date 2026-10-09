@@ -98,6 +98,20 @@ if (!class_exists('Session')) {
     }
 }
 
+if (!class_exists('ProfileRight')) {
+    class ProfileRight
+    {
+        /** @var array<int, array<string, int>> profiles_id => [right name => bits] */
+        public static array $byProfile = [];
+
+        public static function getProfileRights($profiles_id, array $rights = []): array
+        {
+            $all = self::$byProfile[(int) $profiles_id] ?? [];
+            return $rights === [] ? $all : array_intersect_key($all, array_flip($rights));
+        }
+    }
+}
+
 if (!class_exists('GLPIKey')) {
     /** Reversible fake sealing; get() — the master key — must never be used by the plugin. */
     class GLPIKey

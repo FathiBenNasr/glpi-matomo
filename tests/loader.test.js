@@ -14,7 +14,7 @@ const vm = require('node:vm');
 
 const SRC = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'mtm-loader.js'), 'utf8');
 
-function run(metas, location) {
+function run(metas, location, referrer) {
     const inserted = [];
     const document = {
         querySelector(sel) {
@@ -24,6 +24,7 @@ function run(metas, location) {
         },
         createElement: () => ({}),
         getElementsByTagName: () => [{ parentNode: { insertBefore: (el) => inserted.push(el) } }],
+        referrer: referrer || '',
     };
     const window = { location: location || { pathname: '/front/central.php', search: '', hash: '' } };
     window.window = window;
@@ -71,7 +72,8 @@ test('no identity tag, no glpiUserId', () => {
 // M-12: mutable third-party code never runs in administration pages.
 test('injects nothing on a privileged page, even if the tags reached it', () => {
     for (const pathname of ['/front/config.form.php', '/glpi/front/profile.form.php', '/front/user.form.php',
-        '/front/preference.php', '/front/authldap.form.php', '/plugins/matomo/front/config.php', '/ajax/rule.php']) {
+        '/front/preference.php', '/front/authldap.form.php', '/plugins/matomo/front/config.php', '/ajax/rule.php',
+        '/front/%63onfig.form.php', '/front//profile.form.php', '/front/./user.form.php', '/front/%E0%A4%A.php']) {
         const r = run({ 'glpi-matomo-container': 'https://s.example/js/container_C1.js', 'glpi-matomo-uid': 'abc' },
             { pathname, search: '', hash: '' });
         assert.strictEqual(r.inserted.length, 0, pathname);
@@ -96,4 +98,17 @@ test('an ordinary page with harmless parameters is tracked', () => {
     const r = run({ 'glpi-matomo-container': 'https://s.example/js/container_C1.js' },
         { pathname: '/front/ticket.form.php', search: '?id=12', hash: '#tab' });
     assert.strictEqual(r.inserted.length, 1);
+});
+
+// M-13: the tracker also reports document.referrer; a reset link must not leak through it.
+test('injects nothing when the referrer carries a secret', () => {
+    for (const ref of ['https://glpi.example/front/lostpassword.php?password_forget_token=abc',
+        'https://glpi.example/front/x.php?a=1#access_token=abc', 'https://idp.example/cb?code=a&state=b']) {
+        const r = run({ 'glpi-matomo-container': 'https://s.example/js/container_C1.js' },
+            { pathname: '/front/lostpassword.php', search: '', hash: '' }, ref);
+        assert.strictEqual(r.inserted.length, 0, ref);
+    }
+    const ok = run({ 'glpi-matomo-container': 'https://s.example/js/container_C1.js' },
+        { pathname: '/front/central.php', search: '', hash: '' }, 'https://glpi.example/front/ticket.php?id=3#tab');
+    assert.strictEqual(ok.inserted.length, 1);
 });

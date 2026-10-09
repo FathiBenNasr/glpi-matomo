@@ -219,7 +219,8 @@ final class ConfigTest extends TestCase
             '/front/config.form.php', '/glpi/front/profile.form.php?id=4', '/front/user.form.php',
             '/front/authldap.form.php', '/front/preference.php', '/front/apiclient.form.php',
             '/front/plugin.php', '/front/crontask.php', '/ajax/rule.php', '/plugins/matomo/front/config.php',
-            '/front/CONFIG.form.php',
+            '/front/CONFIG.form.php', '/front/%63onfig.form.php', '/glpi//front//user.form.php',
+            '/front/./profile.form.php', '/plugins/matomo/front/%63onfig.php',
         ] as $uri) {
             self::assertTrue(MatomoConfig::isPrivilegedPath($uri), $uri);
         }

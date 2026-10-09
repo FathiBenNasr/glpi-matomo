@@ -12,7 +12,7 @@ Le script sert aussi de test en vrai navigateur. Il échoue :
 - si MTM ne démarre pas sur l'écran de connexion ;
 - si une identité apparaît sur cette page anonyme ;
 - si le conteneur se charge pour le compte administrateur (`GLPI_USER`), ou sur la page de
-  réglages : depuis la 1.0.4 / 1.1.2, ni une session d'administration ni une page
+  réglages : depuis la 1.0.5 / 1.1.3, ni une session d'administration ni une page
   d'administration ne l'exécutent ;
 - si, avec un compte sans droit d'administration (`TRACKED_USER`, facultatif), `glpiUserId`
   n'est pas poussé dans `_mtm` **avant** `mtm.Start`.

@@ -1,6 +1,6 @@
 // Regenerates the README screenshots against a GLPI bench, and doubles as a real-browser
 // test: it fails if the loader does not start MTM on the login screen, if it runs for the
-// administrator account or on the settings page (1.0.4 / 1.1.2), or if a non-admin page does
+// administrator account or on the settings page (1.0.5 / 1.1.3), or if a non-admin page does
 // not push the user identity to the data layer. Runs in the Puppeteer container; credentials
 // come from the environment only: GLPI_URL, GLPI_USER, GLPI_PASS (administrator), OUT, and
 // optionally TRACKED_USER, TRACKED_PASS (an account without administration rights).
