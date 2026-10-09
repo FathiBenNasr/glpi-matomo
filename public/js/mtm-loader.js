@@ -6,15 +6,42 @@
  *   glpi-matomo-container  container URL (https only)
  *   glpi-matomo-uid        optional user identity, pushed to the data layer
  *                          as "glpiUserId" for the User ID field in Matomo
+ *
+ * The server already withholds the tags on the pages below; the loader checks
+ * again (defence in depth). Both patterns are copied verbatim from
+ * src/Config.php (SECRET_PARAM_PATTERN, PRIVILEGED_PATH_PATTERN); a PHP test
+ * fails if they drift apart.
  */
 (function () {
+    var SECRET_PARAM = new RegExp('^([^=]*(token|passw|secret)[^=]*|code|state)$', 'i');
+    var PRIVILEGED_PATH = new RegExp('/(front|ajax)/(config|setup|profile|user|preference|group|entity|auth|apiclient|oauthclient|plugin|marketplace|crontask|mailcollector|notification|rule|webhook)[A-Za-z0-9_.-]*[.]php|/plugins/[^/]+/front/config', 'i');
+    var CONTAINER = /^(?!.*\/\.)https:\/\/[^\/?#@\s"'<>\\]+(\/[A-Za-z0-9._~-]+)*\/container_[A-Za-z0-9_]+\.js$/;
+
     function meta(name) {
         var m = document.querySelector('meta[name="' + name + '"]');
         return m ? (m.getAttribute('content') || '') : '';
     }
 
+    // WHY (M-13): the tracker records the page URL; never when it carries a secret.
+    function carriesSecret(part) {
+        var pairs = String(part || '').replace(/^[?#]/, '').split(/[&;]/);
+        for (var i = 0; i < pairs.length; i++) {
+            var eq = pairs[i].indexOf('=');
+            if (eq < 0) continue;
+            var name = pairs[i].slice(0, eq).replace(/\+/g, ' ');
+            try { name = decodeURIComponent(name); } catch (e) { return true; }
+            if (SECRET_PARAM.test(name)) return true;
+        }
+        return false;
+    }
+
+    var loc = window.location || {};
+    if (carriesSecret(loc.search) || carriesSecret(loc.hash)) return;
+    // WHY (M-12): mutable third-party code never runs in administration pages.
+    if (PRIVILEGED_PATH.test(String(loc.pathname || ''))) return;
+
     var url = meta('glpi-matomo-container');
-    if (url.indexOf('https://') !== 0) return;
+    if (!CONTAINER.test(url)) return;
 
     var w = window;
     w._mtm = w._mtm || [];
