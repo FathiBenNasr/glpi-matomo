@@ -18,76 +18,7 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 
-// ---------------------------------------------------------------- GLPI stubs
-if (!defined('UPDATE')) { define('UPDATE', 2); }
-if (!defined('ERROR'))  { define('ERROR', 1); }
-if (!defined('INFO'))   { define('INFO', 0); }
-if (!defined('GLPI_VERSION')) { define('GLPI_VERSION', '11.0.7'); }
-
-if (!function_exists('__')) {
-    function __(string $s, ?string $d = null): string { return $s; }
-}
-
-if (!class_exists('CommonGLPI')) {
-    abstract class CommonGLPI {}
-}
-
-if (!class_exists('Config')) {
-    class Config
-    {
-        public static array $store = [];
-
-        public static function getConfigurationValues(string $ctx, array $keys = []): array
-        {
-            return self::$store[$ctx] ?? [];
-        }
-
-        public static function setConfigurationValues(string $ctx, array $values): void
-        {
-            self::$store[$ctx] = array_merge(self::$store[$ctx] ?? [], $values);
-        }
-    }
-}
-
-if (!class_exists('Html')) {
-    class Html
-    {
-        public static function submit(string $label, array $opts = []): string { return '<button>' . $label . '</button>'; }
-        public static function closeForm(): void { echo '</form>'; }
-    }
-}
-
-if (!class_exists('Plugin')) {
-    class Plugin
-    {
-        public static string $phpDir = '';
-        // Removed in GLPI 12: on GLPI 11+ the plugin must not call it at all.
-        public static function getWebDir(string $k): string { throw new RuntimeException('Plugin::getWebDir() called'); }
-        public static function getPhpDir(string $k): string { return self::$phpDir; }
-    }
-}
-
-if (!class_exists('Session')) {
-    class Session
-    {
-        public static array $messages = [];
-        public static bool $rightGranted = true;
-
-        public static function checkRight(string $module, int $right): void
-        {
-            if (!self::$rightGranted) {
-                throw new RuntimeException('right denied: ' . $module);
-            }
-        }
-
-        public static function addMessageAfterRedirect(string $msg, bool $check = false, int $level = 0): void
-        {
-            self::$messages[] = [$level, $msg];
-        }
-    }
-}
-
-require_once __DIR__ . '/../src/Config.php';
+require_once __DIR__ . '/stubs.php';
 
 use GlpiPlugin\Matomo\Config as MatomoConfig;
 
@@ -101,6 +32,8 @@ final class ConfigTest extends TestCase
         Config::$store         = [];
         Session::$messages     = [];
         Session::$rightGranted = true;
+        Session::$rights       = [];
+        GLPIKey::$getCalls     = 0;
     }
 
     private function settings(array $over = []): array
@@ -174,7 +107,7 @@ final class ConfigTest extends TestCase
     public function testUnknownUserIdModeIsRejected(): void
     {
         $this->reset();
-        MatomoConfig::saveConfig(['container_url' => 'https://s/c.js', 'user_id_mode' => 'email']);
+        MatomoConfig::saveConfig(['container_url' => 'https://s.example/js/container_C1.js', 'user_id_mode' => 'email']);
         self::assertSame([], Config::$store);
         self::assertSame(ERROR, Session::$messages[0][0] ?? null);
     }
@@ -184,7 +117,7 @@ final class ConfigTest extends TestCase
     {
         foreach (['0' => false, '1' => true, 'yes' => false, '' => false] as $posted => $expected) {
             $this->reset();
-            MatomoConfig::saveConfig(['container_url' => 'https://s/c.js', 'track_anonymous' => (string) $posted]);
+            MatomoConfig::saveConfig(['container_url' => 'https://s.example/js/container_C1.js', 'track_anonymous' => (string) $posted]);
             self::assertSame($expected, MatomoConfig::getSettings()['track_anonymous'], "posted '{$posted}'");
         }
     }
@@ -200,7 +133,7 @@ final class ConfigTest extends TestCase
 
         $denied = false;
         try {
-            MatomoConfig::saveConfig(['container_url' => 'https://stats.example.com/js/c.js']);
+            MatomoConfig::saveConfig(['container_url' => 'https://stats.example.com/js/container_C2.js']);
         } catch (RuntimeException $e) {
             $denied = true;
         }
@@ -211,22 +144,152 @@ final class ConfigTest extends TestCase
 
     // ---------------------------------------------------------- defaults --
 
-    /** An upgraded install (only container_url stored) gets the safe defaults. */
-    public function testDefaultsAfterUpgrade(): void
+    /**
+     * M-13: an upgraded install (only container_url stored) gets the safe defaults —
+     * anonymous pages (login, password reset) are NOT tracked until an admin opts in.
+     */
+    public function testAnonymousTrackingIsOffWhenKeyMissing(): void
     {
         $this->reset();
-        Config::$store['plugin:matomo'] = ['container_url' => 'https://s/c.js'];
+        Config::$store['plugin:matomo'] = ['container_url' => 'https://s.example/js/container_C1.js'];
         self::assertSame(
-            ['container_url' => 'https://s/c.js', 'track_anonymous' => true, 'user_id_mode' => 'none'],
+            ['container_url' => 'https://s.example/js/container_C1.js', 'track_anonymous' => false, 'user_id_mode' => 'none'],
             MatomoConfig::getSettings()
         );
+        self::assertSame([], MatomoConfig::headerTags(MatomoConfig::getSettings(), true, ''));
+    }
+
+    // ------------------------------------------------------ URL guards --
+
+    /**
+     * M-12: only the exact shape of an MTM container served over HTTPS is accepted:
+     * no credentials, query, fragment, quote or arbitrary script path.
+     */
+    public function testContainerUrlHostAllowlist(): void
+    {
+        foreach ([
+            'https://stats.convergent.tn/js/container_AbC12345.js',
+            'https://stats.example.com/matomo/js/container_X_dev_abc.js',
+            'https://stats.example.com:8443/js/container_A1.js',
+        ] as $ok) {
+            self::assertTrue(MatomoConfig::isValidContainerUrl($ok), $ok);
+        }
+        foreach ([
+            'https://evil.example/payload.js',
+            'https://stats.example.com/js/container_A1.js?x=1',
+            'https://stats.example.com/js/container_A1.js#x',
+            'https://user:pw@stats.example.com/js/container_A1.js',
+            'https://stats.example.com@evil.example/js/container_A1.js',
+            'https:///js/container_A1.js',
+            'https://stats.example.com/js/container_A1.js.php',
+            'https://stats.example.com/../container_A1.js',
+            'https://stats.example.com/js/"onload=x/container_A1.js',
+            'http://stats.example.com/js/container_A1.js',
+        ] as $bad) {
+            self::assertFalse(MatomoConfig::isValidContainerUrl($bad), $bad);
+            $this->reset();
+            MatomoConfig::saveConfig(['container_url' => $bad]);
+            self::assertSame([], Config::$store, "must not store {$bad}");
+        }
+    }
+
+    /** M-13: a password-reset (or any token-bearing) URL is recognised as secret. */
+    public function testUrlCarryingASecretIsDetected(): void
+    {
+        foreach ([
+            '/front/lostpassword.php?password_forget_token=abc123',
+            '/glpi/front/lostpassword.php?x=1&PASSWORD_FORGET_TOKEN=abc',
+            '/front/lostpassword.php?password%5Fforget%5Ftoken=abc',
+            '/front/central.php?_glpi_csrf_token=abc',
+            '/apirest.php/initSession?user_token=abc',
+            '/front/login.php?code=abc&state=xyz',
+            '/front/x.php?new_password=abc',
+        ] as $uri) {
+            self::assertTrue(MatomoConfig::urlCarriesSecret($uri), $uri);
+        }
+        foreach (['/', '/front/central.php', '/front/ticket.form.php?id=12', '/front/lostpassword.php', '/front/helpdesk.public.php?create_ticket=1'] as $uri) {
+            self::assertFalse(MatomoConfig::urlCarriesSecret($uri), $uri);
+        }
+    }
+
+    /** M-12: administration pages are privileged; ordinary pages are not. */
+    public function testPrivilegedPathsAreRecognised(): void
+    {
+        foreach ([
+            '/front/config.form.php', '/glpi/front/profile.form.php?id=4', '/front/user.form.php',
+            '/front/authldap.form.php', '/front/preference.php', '/front/apiclient.form.php',
+            '/front/plugin.php', '/front/crontask.php', '/ajax/rule.php', '/plugins/matomo/front/config.php',
+            '/front/CONFIG.form.php',
+        ] as $uri) {
+            self::assertTrue(MatomoConfig::isPrivilegedPath($uri), $uri);
+        }
+        foreach (['/', '/front/central.php', '/front/ticket.form.php?id=1', '/front/helpdesk.public.php',
+                  '/front/computer.php?is_deleted=0&x=/front/config.php'] as $uri) {
+            self::assertFalse(MatomoConfig::isPrivilegedPath($uri), $uri);
+        }
+    }
+
+    /** M-12: a session holding config, profile or user UPDATE is privileged; a failing check too. */
+    public function testPrivilegedSessionsFailClosed(): void
+    {
+        $none = static fn (string $m, int $r): bool => false;
+        self::assertFalse(MatomoConfig::isPrivilegedContext('/front/central.php', $none));
+        foreach (['config', 'profile', 'user'] as $module) {
+            $only = static fn (string $m, int $r): bool => $m === $module && $r === UPDATE;
+            self::assertTrue(MatomoConfig::isPrivilegedContext('/front/central.php', $only), $module);
+        }
+        $throws = static function (string $m, int $r): bool { throw new RuntimeException('no session'); };
+        self::assertTrue(MatomoConfig::isPrivilegedContext('/front/central.php', $throws), 'fail closed');
+    }
+
+    /**
+     * The loader re-checks the same patterns client side; they are copied verbatim
+     * and must not drift apart.
+     */
+    public function testLoaderUsesTheSamePatterns(): void
+    {
+        $js = (string) file_get_contents(__DIR__ . '/../public/js/mtm-loader.js');
+        self::assertStringContainsString("new RegExp('" . MatomoConfig::SECRET_PARAM_PATTERN . "', 'i')", $js);
+        self::assertStringContainsString("new RegExp('" . MatomoConfig::PRIVILEGED_PATH_PATTERN . "', 'i')", $js);
+    }
+
+    // ---------------------------------------------------- pseudonym salt --
+
+    /** L-41: the salt is the plugin's own, random, stored sealed and created once. */
+    public function testPseudonymSaltIsOwnSealedAndStable(): void
+    {
+        $this->reset();
+        MatomoConfig::ensurePseudonymSalt();
+        $sealed = Config::$store['plugin:matomo'][MatomoConfig::SALT_KEY] ?? '';
+        self::assertTrue(str_starts_with($sealed, 'sealed:'), 'stored sealed by GLPIKey');
+        $salt = MatomoConfig::pseudonymSecret();
+        self::assertSame(1, preg_match('/^[0-9a-f]{64}$/', $salt), 'random 256-bit salt');
+        MatomoConfig::ensurePseudonymSalt();
+        self::assertSame($salt, MatomoConfig::pseudonymSecret(), 'never regenerated');
+        self::assertSame(0, GLPIKey::$getCalls, 'GLPI master key never read');
+    }
+
+    /** L-41: an unreadable salt yields no pseudonym (fail closed). */
+    public function testUnreadableSaltGivesNoSecret(): void
+    {
+        $this->reset();
+        Config::$store['plugin:matomo'] = [MatomoConfig::SALT_KEY => 'garbage'];
+        self::assertSame('', MatomoConfig::pseudonymSecret());
+    }
+
+    /** Choosing the pseudonym mode creates the salt when it is missing. */
+    public function testSavingPseudonymModeCreatesTheSalt(): void
+    {
+        $this->reset();
+        MatomoConfig::saveConfig(['container_url' => 'https://s.example/js/container_C1.js', 'user_id_mode' => 'pseudonym']);
+        self::assertNotSame('', MatomoConfig::pseudonymSecret());
     }
 
     /** A tampered stored mode falls back to "none", never to sending something. */
     public function testCorruptStoredModeFallsBackToNone(): void
     {
         $this->reset();
-        Config::$store['plugin:matomo'] = ['container_url' => 'https://s/c.js', 'user_id_mode' => 'everything'];
+        Config::$store['plugin:matomo'] = ['container_url' => 'https://s.example/js/container_C1.js', 'user_id_mode' => 'everything'];
         self::assertSame('none', MatomoConfig::getSettings()['user_id_mode']);
     }
 
@@ -295,7 +358,7 @@ final class ConfigTest extends TestCase
         self::assertSame(['glpi-matomo-container'], array_keys($m));
     }
 
-    /** The login screen is tracked by default, and never carries an identity. */
+    /** When opted in, the login screen never carries an identity. */
     public function testAnonymousPagesCarryTheContainerOnly(): void
     {
         $m = self::metas(MatomoConfig::headerTags($this->settings(), true, 'abc123'));

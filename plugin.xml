@@ -15,6 +15,10 @@
    </authors>
    <versions>
       <version>
+         <num>1.0.4</num>
+         <compatibility>~11.0</compatibility>
+      </version>
+      <version>
          <num>1.0.0</num>
          <compatibility>~10.0 || ~11.0</compatibility>
       </version>

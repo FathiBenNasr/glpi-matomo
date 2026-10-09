@@ -2,11 +2,11 @@
 
 ![Settings page](docs/captures/01-settings.png)
 
-Inject a [Matomo Tag Manager](https://matomo.org/guide/tag-manager/) container into GLPI with zero code changes — just paste your container URL in the plugin settings. The container is loaded on every page shown to a logged-in user (standard and simplified interfaces) and, unless you switch it off, on the login screen and the other anonymous pages. It can optionally tell Matomo **who** the logged-in user is.
+Inject a [Matomo Tag Manager](https://matomo.org/guide/tag-manager/) container into GLPI with zero code changes — just paste your container URL in the plugin settings. The container is loaded on the pages shown to logged-in users (standard and simplified interfaces) — never for administrators nor on administration pages — and, if you switch it on, on the login screen and the other anonymous pages. It can optionally tell Matomo **who** the logged-in user is.
 
 ## Features
 
-- Loads your Matomo Tag Manager container on every page shown to a logged-in user, and on the login screen (switchable)
+- Loads your Matomo Tag Manager container on the pages of logged-in users, and optionally on the login screen (off by default)
 - **Optional user identity** pushed to the MTM data layer as `glpiUserId`: a non-reversible pseudonym, or the GLPI login (see *Privacy*)
 - Configured entirely from the GLPI admin panel — no file or template editing
 - Native GLPI plugin hooks + one small static JS loader; asynchronous, zero perceptible overhead
@@ -44,15 +44,17 @@ To use the identity in Matomo: in Tag Manager, create a *Data-Layer* variable na
 
 | Setting | Description |
 |---------|-------------|
-| Container URL | Full HTTPS URL to your MTM container JS (`https://…/js/container_XXXXXXXX.js`). Must start with `https://`. Empty = tracking off. |
-| Track the login screen | Also load the container on anonymous pages (login, password reset). On by default. No identity is ever sent there. |
-| Identity of the logged-in user | **Do not send** (default) · **Pseudonym** — HMAC-SHA256 of the GLPI user id keyed with the instance's GLPI key: stable, not reversible, meaningless outside your instance · **GLPI login** — in clear. |
+| Container URL | Full HTTPS URL to your MTM container JS (`https://…/js/container_XXXXXXXX.js`). Only the shape of an MTM container is accepted: `https://`, a host, no credentials, query or fragment, a path ending in `/container_<id>.js`. Empty = tracking off. |
+| Track the login screen | Also load the container on anonymous pages (login, password reset). **Off by default** (since 1.0.4 / 1.1.2). No identity is ever sent there, and a URL carrying a token (password reset link…) is never tracked. |
+| Identity of the logged-in user | **Do not send** (default) · **Pseudonym** — HMAC-SHA256 of the GLPI user id keyed with a random salt of the plugin, stored encrypted with the GLPI key: stable, not reversible, meaningless outside your instance · **GLPI login** — in clear. |
 
 The value is stored in GLPI's core configuration store under the `plugin:matomo` context (no dedicated plugin table is created).
 
+**Upgrading to 1.0.4 / 1.1.2 requires a reinstall** (`plugin:install --force matomo`, as the web user): the install creates the pseudonym salt. Until then the pseudonym mode sends no identity (it fails closed). Pseudonyms produced by 1.0.3 / 1.1.1 change once.
+
 ## Privacy
 
-Sending an identity to Matomo links every visit to a person: under the GDPR (and the Tunisian law 2004-63) the **pseudonym is still personal data**, the login even more so. Before enabling either: have a legal basis, inform your users (and update your privacy notice), keep Matomo self-hosted if you can, and prefer the pseudonym. The identity is never sent on anonymous pages, and the setting fails closed: without a GLPI key no pseudonym is produced, and there is never a fallback to the login.
+Sending an identity to Matomo links every visit to a person: under the GDPR (and the Tunisian law 2004-63) the **pseudonym is still personal data**, the login even more so. Before enabling either: have a legal basis, inform your users (and update your privacy notice), keep Matomo self-hosted if you can, and prefer the pseudonym. The identity is never sent on anonymous pages, and the setting fails closed: without the plugin's salt no pseudonym is produced, and there is never a fallback to the login. On the Matomo side, enable IP anonymisation, honour *Do Not Track* or offer an opt-out, and exclude the query parameters `password_forget_token`, `token` and `_glpi_csrf_token` in the site settings.
 
 ## Permissions
 
@@ -61,13 +63,21 @@ Configuration requires the GLPI core **`config: UPDATE`** right (typically the f
 ## Architecture
 
 - The plugin passes its settings as `<meta>` tags through GLPI's `add_header_tag` / `add_header_tag_anonymous_page` hooks (escaped by GLPI's template), and loads one static script, `public/js/mtm-loader.js`, through `add_javascript` / `add_javascript_anonymous_page`. The loader reads the tags, pushes `glpiUserId` when present, then starts MTM.
-- Settings are read from GLPI's core config (`plugin:matomo` context: `container_url`, `track_anonymous`, `user_id_mode`) — no plugin database table, no per-asset data, and no file written at runtime.
-- The plugin is `csrf_compliant`; the configuration form posts through GLPI's CSRF-protected front controller.
+- Settings are read from GLPI's core config (`plugin:matomo` context: `container_url`, `track_anonymous`, `user_id_mode`, `pseudonym_salt` encrypted) — no plugin database table, no per-asset data, and no file written at runtime.
+- The configuration form posts through GLPI 11's CSRF-protected front controller.
 
 ## Security
 
-- The container URL is validated to start with `https://` before being saved.
-- Settings reach the page as data only: escaped `<meta>` attributes, never JavaScript; the loader refuses a container that is not `https://`.
+**Trust boundary.** A Matomo Tag Manager container is third-party code that its publishers can change at any time; it runs with the privileges of the GLPI origin. Whoever can publish in your MTM container — or compromises your Matomo host — can act as any user whose page loads it. The plugin therefore:
+
+- never loads the container for a session holding `config`, `profile` or `user` **UPDATE** (administrators), nor on administration pages (setup, profiles, users, preferences with API tokens, authentication, plugins, rules, notifications…); a right check that fails counts as privileged;
+- never loads it on a URL carrying a secret (`password_forget_token`, any `*token*`, `*passw*`, `*secret*`, `code`, `state` parameter), so a password-reset link never reaches Matomo's visit log;
+- re-checks both conditions in the loader, as a second layer.
+
+What remains is yours to decide: restrict *Publish* rights on the MTM container to the owner, and set a Content Security Policy on the GLPI virtual host, for example `Content-Security-Policy: script-src 'self' https://stats.example.com; object-src 'none'; base-uri 'self'`. A static `matomo.js` tracker pinned with an integrity hash (SRI) would remove the risk altogether, at the cost of Tag Manager's flexibility.
+
+- The container URL must have the shape of an MTM container (`https://host/…/container_<id>.js`, no credentials, query or fragment) before being saved, and again before being emitted.
+- Settings reach the page as data only: escaped `<meta>` attributes, never JavaScript; the loader refuses a container of any other shape.
 - The identity mode is whitelisted; an unknown stored value falls back to *Do not send*.
 - The configuration page is gated by `config: UPDATE` and protected by GLPI 11's CSRF listener.
 - The plugin reads/writes only GLPI's own configuration store — it touches no core or third-party tables.
@@ -79,8 +89,8 @@ Generated by the browser bench, see [docs/captures/](docs/captures/README.md).
 ## Tests
 
 ```bash
-php tests/run.php            # or: phpunit --no-configuration tests/
-node --test tests/*.test.js  # the real loader, in a vm sandbox
+php tests/run.php            # or: phpunit --no-configuration tests/  (42 tests)
+node --test tests/*.test.js  # the real loader, in a vm sandbox      (8 tests)
 ```
 
 ## Changelog

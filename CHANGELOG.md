@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.0.4] — 2026-10-09
+
+Security release. **Reinstall after upgrading** (`sudo -u apache php bin/console plugin:install --force matomo`):
+the install creates the pseudonym salt, and GLPI disables a plugin whose version changed without a reinstall.
+
+### Security
+- **The login screen is no longer tracked by default.** An upgrade from 1.0.2 silently started tracking the
+  anonymous pages; it is now an explicit opt-in.
+- **A URL carrying a secret is never tracked** — password-reset links (`password_forget_token`), CSRF/API tokens,
+  SSO `code`/`state`: the reset token would otherwise land in Matomo's visit log and let any Matomo reader take
+  over the GLPI account.
+- **No third-party container for administrators nor on administration pages.** A session holding `config`,
+  `profile` or `user` UPDATE, and the pages that change configuration, rights, accounts, authentication or API
+  tokens, never load the container: whoever can publish in the MTM container must not act as a GLPI administrator.
+  The loader re-checks the page and the URL client side.
+- **Stricter container URL**: only `https://host/…/container_<id>.js` (no credentials, query or fragment).
+- **Pseudonym keyed with the plugin's own random salt**, stored encrypted with the GLPI key, instead of GLPI's
+  master key itself. Pseudonyms from 1.0.3 change once.
+
+### Changed
+- `declare(strict_types=1)` in every PHP file; translation domain `matomo` for the plugin's strings; the obsolete
+  `csrf_compliant` hook (no effect since GLPI 11) is gone.
+- `plugin_init_matomo()` is covered by tests (42 PHP tests, 8 loader tests).
+- Screenshot bench documentation no longer names an internal address or account, and passes credentials from the
+  caller's environment.
+
 ## [1.0.3] — 2026-10-08
 
 ### Added
