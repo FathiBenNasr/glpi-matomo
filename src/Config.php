@@ -218,7 +218,37 @@ class Config extends CommonGLPI
     public static function isPrivilegedPath(string $uri): bool
     {
         $path = (string) (parse_url($uri, PHP_URL_PATH) ?? '');
+        // WHY (M-12): the web server decodes %XX and merges "//" and "/./" before
+        // picking the script; compare the same path it serves, not the raw spelling.
+        $path = rawurldecode($path);
+        do {
+            $before = $path;
+            $path   = (string) preg_replace(['#/{2,}#', '#/\./#'], '/', $path);
+        } while ($path !== $before);
         return preg_match('#' . self::PRIVILEGED_PATH_PATTERN . '#i', $path) === 1;
+    }
+
+    /**
+     * True when the user holds $right on $module in the active profile or in any
+     * other profile of the session.
+     *
+     * WHY (M-12): a super-administrator browsing under a self-service profile can
+     * switch back to the admin profile from the same page; the container would
+     * then act as that administrator. Any reachable profile counts. Exceptions
+     * propagate, so isPrivilegedContext() fails closed.
+     */
+    public static function sessionCanReachRight(string $module, int $right): bool
+    {
+        if (Session::haveRight($module, $right)) {
+            return true;
+        }
+        foreach (array_keys((array) ($_SESSION['glpiprofiles'] ?? [])) as $profiles_id) {
+            $rights = \ProfileRight::getProfileRights((int) $profiles_id, [$module]);
+            if ((((int) ($rights[$module] ?? 0)) & $right) === $right) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

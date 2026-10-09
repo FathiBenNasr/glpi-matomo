@@ -35,10 +35,29 @@
         return false;
     }
 
+    // The tracker also reports document.referrer (urlref): check its query and fragment.
+    function urlCarriesSecret(u) {
+        u = String(u || '');
+        var h = u.indexOf('#');
+        var frag = h < 0 ? '' : u.slice(h + 1);
+        var base = h < 0 ? u : u.slice(0, h);
+        var q = base.indexOf('?');
+        return carriesSecret(q < 0 ? '' : base.slice(q + 1)) || carriesSecret(frag);
+    }
+
+    // Same normalisation as Config::isPrivilegedPath(): decode, merge "//" and "/./".
+    function isPrivilegedPath(p) {
+        try { p = decodeURIComponent(String(p || '')); } catch (e) { return true; }
+        var before;
+        do { before = p; p = p.replace(/\/{2,}/g, '/').replace(/\/\.\//g, '/'); } while (p !== before);
+        return PRIVILEGED_PATH.test(p);
+    }
+
     var loc = window.location || {};
     if (carriesSecret(loc.search) || carriesSecret(loc.hash)) return;
+    if (urlCarriesSecret((window.document || {}).referrer)) return;
     // WHY (M-12): mutable third-party code never runs in administration pages.
-    if (PRIVILEGED_PATH.test(String(loc.pathname || ''))) return;
+    if (isPrivilegedPath(loc.pathname)) return;
 
     var url = meta('glpi-matomo-container');
     if (!CONTAINER.test(url)) return;

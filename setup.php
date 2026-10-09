@@ -8,7 +8,7 @@ declare(strict_types=1);
  * optionally the login screen), optionally with the identity of the user.
  */
 
-define('PLUGIN_MATOMO_VERSION', '1.0.4');
+define('PLUGIN_MATOMO_VERSION', '1.0.5');
 define('PLUGIN_MATOMO_MIN_GLPI', '11.0.0');
 define('PLUGIN_MATOMO_MAX_GLPI', '11.99.99');
 
@@ -70,7 +70,9 @@ function plugin_init_matomo(): void
 
     // WHY (M-13): the tracker records the full page URL; a URL carrying a secret
     // (password-reset token, API or CSRF token, SSO code) never reaches Matomo.
-    if (\GlpiPlugin\Matomo\Config::urlCarriesSecret($uri)) {
+    // The referrer too: the page reached from a reset link would report it as urlref.
+    if (\GlpiPlugin\Matomo\Config::urlCarriesSecret($uri)
+        || \GlpiPlugin\Matomo\Config::urlCarriesSecret((string) ($_SERVER['HTTP_REFERER'] ?? ''))) {
         return;
     }
 
@@ -81,7 +83,7 @@ function plugin_init_matomo(): void
     // change configuration, rights or accounts.
     $privileged = \GlpiPlugin\Matomo\Config::isPrivilegedContext(
         $uri,
-        static fn (string $module, int $right): bool => (bool) \Session::haveRight($module, $right)
+        static fn (string $module, int $right): bool => \GlpiPlugin\Matomo\Config::sessionCanReachRight($module, $right)
     );
     if ($users_id > 0 && !$privileged) {
         $user_id = '';

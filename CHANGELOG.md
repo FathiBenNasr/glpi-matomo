@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.0.5] — 2026-10-09
+
+Supersedes 1.0.4, which was never published. **Reinstall after upgrading**
+(`sudo -u apache php bin/console plugin:install --force matomo`).
+
+### Security
+- **The referrer is checked too**: a page reached from a password-reset link (the reset form's result, the
+  login screen) would report the token to Matomo as its referrer (`urlref`); such a page loads nothing.
+- **Any profile of the session counts**: a super-administrator browsing under the self-service profile can switch
+  back to the admin profile from the same page, so a user holding `config`, `profile` or `user` UPDATE in *any*
+  of their profiles never loads the container.
+- **Administration paths are compared after decoding**: `%63onfig.form.php`, `//` and `/./` no longer slip past
+  the server and loader checks.
+- 44 PHP tests, 9 loader tests.
+
 ## [1.0.4] — 2026-10-09
 
 Security release. **Reinstall after upgrading** (`sudo -u apache php bin/console plugin:install --force matomo`):
