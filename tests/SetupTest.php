@@ -43,6 +43,7 @@ final class SetupTest extends TestCase
         Session::$loginUserId     = $users_id;
         Session::$rights          = array_fill_keys($rights, true);
         Session::$haveRightThrows = false;
+        Session::$impersonating   = false;
         Plugin::$active           = true;
         GLPIKey::$getCalls        = 0;
         ProfileRight::$byProfile  = $profiles;
@@ -186,6 +187,43 @@ final class SetupTest extends TestCase
             self::assertFalse(isset($h['add_javascript']), $uri);
             self::assertFalse(isset($h['add_javascript_anonymous_page']), $uri);
         }
+    }
+
+    /** An impersonated session can step back to the impersonator's: no container, whatever the target's rights. */
+    public function testImpersonatedSessionGetsNoContainer(): void
+    {
+        $this->init('/front/central.php', 42);
+        Session::$impersonating = true;
+        foreach ([['/front/central.php', 42], ['/front/lostpassword.php', 42], ['/', 0]] as [$uri, $uid]) {
+            global $PLUGIN_HOOKS;
+            $PLUGIN_HOOKS = [];
+            Config::$store = ['plugin:matomo' => ['container_url' => self::URL, 'track_anonymous' => '1']];
+            Session::$loginUserId = $uid;
+            $_SERVER['HTTP_HOST'] = 'glpi.example';
+            $_SERVER['REQUEST_URI'] = $uri;
+            plugin_init_matomo();
+            unset($_SERVER['HTTP_HOST']);
+            foreach (['add_javascript', 'add_header_tag', 'add_javascript_anonymous_page', 'add_header_tag_anonymous_page'] as $hook) {
+                self::assertFalse(isset($PLUGIN_HOOKS[$hook]), "{$uri} {$hook}");
+            }
+        }
+        Session::$impersonating = false;
+    }
+
+    /** An administrator opening an anonymous page (lostpassword.php) must not load the container. */
+    public function testAnonymousPageOpenedByAnAdministratorGetsNoContainer(): void
+    {
+        foreach (['config:' . UPDATE, 'user:' . UPDATE] as $right) {
+            $h = $this->init('/front/lostpassword.php', 7, ['track_anonymous' => '1'], [$right]);
+            self::assertFalse(isset($h['add_javascript_anonymous_page']), $right);
+            self::assertFalse(isset($h['add_header_tag_anonymous_page']), $right);
+        }
+        // Another profile of the session being an administrator counts too.
+        $h = $this->init('/front/lostpassword.php', 7, ['track_anonymous' => '1'], [], [1 => [], 4 => ['config' => 31]]);
+        self::assertFalse(isset($h['add_javascript_anonymous_page']));
+        // A visitor and an ordinary user still get it.
+        self::assertTrue(self::loads($this->init('/front/lostpassword.php', 0, ['track_anonymous' => '1']), 'add_javascript_anonymous_page'));
+        self::assertTrue(self::loads($this->init('/front/lostpassword.php', 42, ['track_anonymous' => '1']), 'add_javascript_anonymous_page'));
     }
 
     public function testFailingRightCheckInjectsNothing(): void
