@@ -36,11 +36,20 @@ class Config extends CommonGLPI
     /**
      * Pages from which a session can change configuration, rights, accounts,
      * authentication or API access. Same pattern, verbatim, in mtm-loader.js.
+     * The last alternative covers the Symfony routes of GLPI 11+, which have no
+     * /front or /ajax prefix.
      */
-    public const PRIVILEGED_PATH_PATTERN = '/(front|ajax)/(config|setup|profile|user|preference|group|entity|auth|apiclient|oauthclient|plugin|marketplace|crontask|mailcollector|notification|rule|webhook)[A-Za-z0-9_.-]*[.]php|/plugins/[^/]+/front/config';
+    public const PRIVILEGED_PATH_PATTERN = '/(front|ajax)/(config|setup|profile|user|preference|group|entity|auth|apiclient|oauthclient|plugin|marketplace|crontask|mailcollector|notification|rule|webhook)[A-Za-z0-9_.-]*[.]php|/plugins/[^/]+/front/config|/(Form|Inventory/Configuration|Install|GenericAjaxCrud)(/|$)';
 
     /** Rights whose holder can escalate anyone: no third-party script runs in their pages. */
-    public const PRIVILEGED_RIGHTS = [['config', UPDATE], ['profile', UPDATE], ['user', UPDATE]];
+    public const PRIVILEGED_RIGHTS = [
+        ['config', UPDATE], ['profile', UPDATE], ['user', UPDATE],
+        // WHY (M-12): these bits are distinct from UPDATE yet reset or take over the
+        // authentication of other accounts (2FA, auth source, impersonation).
+        ['user', \User::UPDATEAUTHENT], ['user', \User::IMPERSONATE],
+        // Rules assigning profiles and entities at login, and notification settings.
+        ['rule_ldap', UPDATE], ['rule_import', UPDATE], ['notification', UPDATE],
+    ];
 
     public static function getTypeName($nb = 0): string
     {

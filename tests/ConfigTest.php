@@ -221,11 +221,13 @@ final class ConfigTest extends TestCase
             '/front/plugin.php', '/front/crontask.php', '/ajax/rule.php', '/plugins/matomo/front/config.php',
             '/front/CONFIG.form.php', '/front/%63onfig.form.php', '/glpi//front//user.form.php',
             '/front/./profile.form.php', '/plugins/matomo/front/%63onfig.php',
+            '/Form/Import', '/glpi/Form/Import/Preview', '/Inventory/Configuration', '/Install/Update', '/GenericAjaxCrud',
+            '/%49nstall/Update',
         ] as $uri) {
             self::assertTrue(MatomoConfig::isPrivilegedPath($uri), $uri);
         }
         foreach (['/', '/front/central.php', '/front/ticket.form.php?id=1', '/front/helpdesk.public.php',
-                  '/front/computer.php?is_deleted=0&x=/front/config.php'] as $uri) {
+                  '/front/computer.php?is_deleted=0&x=/front/config.php', '/Installation', '/Inventory/Agent'] as $uri) {
             self::assertFalse(MatomoConfig::isPrivilegedPath($uri), $uri);
         }
     }
@@ -238,6 +240,12 @@ final class ConfigTest extends TestCase
         foreach (['config', 'profile', 'user'] as $module) {
             $only = static fn (string $m, int $r): bool => $m === $module && $r === UPDATE;
             self::assertTrue(MatomoConfig::isPrivilegedContext('/front/central.php', $only), $module);
+        }
+        // Rights distinct from UPDATE that take over or reset other accounts' authentication.
+        foreach ([['user', User::UPDATEAUTHENT], ['user', User::IMPERSONATE], ['rule_ldap', UPDATE],
+                  ['rule_import', UPDATE], ['notification', UPDATE]] as [$module, $right]) {
+            $only = static fn (string $m, int $r): bool => $m === $module && $r === $right;
+            self::assertTrue(MatomoConfig::isPrivilegedContext('/front/central.php', $only), "{$module}:{$right}");
         }
         $throws = static function (string $m, int $r): bool { throw new RuntimeException('no session'); };
         self::assertTrue(MatomoConfig::isPrivilegedContext('/front/central.php', $throws), 'fail closed');

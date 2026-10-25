@@ -8,7 +8,7 @@ declare(strict_types=1);
  * optionally the login screen), optionally with the identity of the user.
  */
 
-define('PLUGIN_MATOMO_VERSION', '1.1.3');
+define('PLUGIN_MATOMO_VERSION', '1.1.4');
 define('PLUGIN_MATOMO_MIN_GLPI', '12.0.0');
 define('PLUGIN_MATOMO_MAX_GLPI', '12.99.99');
 
@@ -76,6 +76,14 @@ function plugin_init_matomo(): void
         return;
     }
 
+    // WHY (M-12): an impersonated session can step back into the impersonator's
+    // session (POST user.form.php impersonate=0) without re-authenticating: the
+    // third-party container never runs in it, whatever the rights of the impersonated
+    // user. Covers the anonymous hooks too.
+    if (\Session::isImpersonateActive()) {
+        return;
+    }
+
     // Logged-in pages: the session is already started when plugins initialise.
     $users_id = (int) (\Session::getLoginUserID() ?: 0);
     // WHY (M-12): the container is mutable third-party code running in the GLPI
@@ -103,7 +111,9 @@ function plugin_init_matomo(): void
     }
 
     // Anonymous pages (login screen, password reset…) use their own hooks; opt-in only.
-    if ($settings['track_anonymous'] && !\GlpiPlugin\Matomo\Config::isPrivilegedPath($uri)) {
+    // WHY (M-12): these hooks are also read when a logged-in session opens an anonymous
+    // page (lostpassword.php answers without a login check): the same privilege gate applies.
+    if ($settings['track_anonymous'] && !$privileged) {
         $PLUGIN_HOOKS['add_header_tag_anonymous_page']['matomo'] = \GlpiPlugin\Matomo\Config::headerTags($settings, true, '');
         $PLUGIN_HOOKS['add_javascript_anonymous_page']['matomo'] = ['js/mtm-loader.js'];
     }

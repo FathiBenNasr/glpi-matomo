@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.4] — 2026-10-25
+
+GLPI 12 line of 1.0.6 (hardening release) — see 1.0.6.
+**Reinstall after upgrading** (`sudo -u apache php bin/console plugin:install --force matomo`).
+
+## [1.0.6] — 2026-10-25
+
+Hardening release. **Reinstall after upgrading** (`sudo -u apache php bin/console plugin:install --force matomo`).
+
+### Security
+- **No container while impersonating**: a session opened with "Impersonate" never loads the third-party
+  container, whatever the rights of the impersonated user (the session can step back to the original account).
+- **Anonymous pages obey the privilege check**: an administrator opening the password-reset page (or any other
+  anonymous page) while logged in no longer loads the container when anonymous tracking is on.
+- **More rights count as privileged**: `user` authentication-update and impersonation, `rule_ldap`, `rule_import`
+  and `notification` UPDATE.
+- **More administration paths**: the GLPI 11 routes `/Form`, `/Inventory/Configuration`, `/Install` and
+  `/GenericAjaxCrud` are excluded, server side and in the loader.
+
 ## [1.1.3] — 2026-10-09
 
 GLPI 12 line of 1.0.5 (security release) — see 1.0.5 and 1.0.4; supersedes 1.1.2, which was never published.

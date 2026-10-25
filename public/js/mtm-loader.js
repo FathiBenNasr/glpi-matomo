@@ -14,7 +14,7 @@
  */
 (function () {
     var SECRET_PARAM = new RegExp('^([^=]*(token|passw|secret)[^=]*|code|state)$', 'i');
-    var PRIVILEGED_PATH = new RegExp('/(front|ajax)/(config|setup|profile|user|preference|group|entity|auth|apiclient|oauthclient|plugin|marketplace|crontask|mailcollector|notification|rule|webhook)[A-Za-z0-9_.-]*[.]php|/plugins/[^/]+/front/config', 'i');
+    var PRIVILEGED_PATH = new RegExp('/(front|ajax)/(config|setup|profile|user|preference|group|entity|auth|apiclient|oauthclient|plugin|marketplace|crontask|mailcollector|notification|rule|webhook)[A-Za-z0-9_.-]*[.]php|/plugins/[^/]+/front/config|/(Form|Inventory/Configuration|Install|GenericAjaxCrud)(/|$)', 'i');
     var CONTAINER = /^(?!.*\/\.)https:\/\/[^\/?#@\s"'<>\\]+(\/[A-Za-z0-9._~-]+)*\/container_[A-Za-z0-9_]+\.js$/;
 
     function meta(name) {

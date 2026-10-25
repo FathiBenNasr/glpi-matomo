@@ -1,0 +1,10 @@
+{
+ "impersonation": ["setup.php", "if (\\Session::isImpersonateActive()) {", "if (false && \\Session::isImpersonateActive()) {"],
+ "anonymous-gate": ["setup.php", "if ($settings['track_anonymous'] && !$privileged) {", "if ($settings['track_anonymous'] && !\\GlpiPlugin\\Matomo\\Config::isPrivilegedPath($uri)) {"],
+ "right-updateauthent": ["src/Config.php", "['user', \\User::UPDATEAUTHENT], ", ""],
+ "right-impersonate": ["src/Config.php", "['user', \\User::IMPERSONATE],", ""],
+ "right-rule-ldap": ["src/Config.php", "['rule_ldap', UPDATE], ", ""],
+ "right-notification": ["src/Config.php", "['notification', UPDATE],", ""],
+ "path-php": ["src/Config.php", "|/(Form|Inventory/Configuration|Install|GenericAjaxCrud)(/|$)'", "'"],
+ "path-js": ["public/js/mtm-loader.js", "|/(Form|Inventory/Configuration|Install|GenericAjaxCrud)(/|$)'", "'"]
+}

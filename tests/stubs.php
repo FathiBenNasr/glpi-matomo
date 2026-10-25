@@ -61,9 +61,21 @@ if (!class_exists('Plugin')) {
     }
 }
 
+if (!class_exists('User')) {
+    class User
+    {
+        public const UPDATEAUTHENT = 4096;
+        public const IMPERSONATE   = 8192;
+    }
+}
+
 if (!class_exists('Session')) {
     class Session
     {
+        public static bool $impersonating = false;
+
+        public static function isImpersonateActive(): bool { return self::$impersonating; }
+
         public static array $messages = [];
         public static bool $rightGranted = true;
         /** @var array<string, bool> "module:right" => granted, for haveRight() */

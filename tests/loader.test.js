@@ -73,7 +73,8 @@ test('no identity tag, no glpiUserId', () => {
 test('injects nothing on a privileged page, even if the tags reached it', () => {
     for (const pathname of ['/front/config.form.php', '/glpi/front/profile.form.php', '/front/user.form.php',
         '/front/preference.php', '/front/authldap.form.php', '/plugins/matomo/front/config.php', '/ajax/rule.php',
-        '/front/%63onfig.form.php', '/front//profile.form.php', '/front/./user.form.php', '/front/%E0%A4%A.php']) {
+        '/front/%63onfig.form.php', '/front//profile.form.php', '/front/./user.form.php', '/front/%E0%A4%A.php',
+        '/Form/Import', '/Inventory/Configuration', '/Install/Update', '/GenericAjaxCrud']) {
         const r = run({ 'glpi-matomo-container': 'https://s.example/js/container_C1.js', 'glpi-matomo-uid': 'abc' },
             { pathname, search: '', hash: '' });
         assert.strictEqual(r.inserted.length, 0, pathname);
