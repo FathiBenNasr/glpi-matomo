@@ -6,6 +6,8 @@ Version déployée : **1.0.6**
 
 Matomo Tag Manager relie GLPI à un service de mesure d'audience Matomo. Quand il est configuré, le navigateur des utilisateurs charge, à chaque page, un petit script (le « conteneur ») fourni par l'organisation, qui enregistre des statistiques de fréquentation de GLPI. Le greffon n'ajoute aucun écran ni aucun menu pour les techniciens et les gestionnaires : cette page explique ce qu'il mesure et ce que cela implique pour la vie privée.
 
+> **À savoir :** Quand le greffon est configuré, chaque page de GLPI charge un script du service Matomo : lisez la section sur la vie privée.
+
 ## Où le trouver
 
 Le greffon n'a **pas** de menu et n'ajoute **aucun onglet** aux fiches GLPI. Sa page de réglages est réservée aux personnes qui peuvent modifier la configuration de GLPI ; elle s'ouvre depuis la liste des plugins (Configuration → Plugins), par l'icône de configuration du plugin. Les libellés de cette page sont en anglais.
@@ -73,6 +75,10 @@ Aucune.
 | Le message « Container URL must be an https:// Matomo Tag Manager container » apparaît | L'adresse n'a pas la forme exigée (https, finissant par `/container_….js`, sans identifiant, paramètre ni ancre). Corrigez-la ou contactez le support. |
 | Les statistiques n'apparaissent pas dans Matomo | Contacter le support : la configuration du conteneur côté Matomo relève de l'administrateur. |
 | Je suis administrateur et rien n'est mesuré pour moi | C'est voulu : le script ne se charge pas pour les profils d'administration ni sur les pages d'administration. |
+
+## Voir aussi
+
+- Consentement aux traitements — manuel d'utilisation
 
 ## Support
 

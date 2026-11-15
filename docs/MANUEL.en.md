@@ -6,6 +6,8 @@ Deployed version: **1.0.6**
 
 Matomo Tag Manager connects GLPI to a Matomo audience measurement service. When it is configured, users' browsers load, on every page, a small script (the "container") provided by the organization, which records statistics on GLPI usage. The plugin adds no screen or menu for technicians and managers: this page explains what it measures and what that means for privacy.
 
+> **Good to know:** When the plugin is configured, every GLPI page loads a script from the Matomo service: read the privacy section.
+
 ## Where to find it
 
 The plugin has **no** menu and adds **no tab** to GLPI items. Its settings page is restricted to people who can change GLPI's configuration; it opens from the plugin list (Setup → Plugins), using the plugin's configuration icon. The labels on that page are in English.
@@ -73,6 +75,10 @@ None.
 | The message "Container URL must be an https:// Matomo Tag Manager container" appears | The address does not have the required form (https, ending in `/container_….js`, with no credentials, parameter or anchor). Correct it or contact support. |
 | Statistics do not appear in Matomo | Contact support: the container configuration on the Matomo side is the administrator's responsibility. |
 | I am an administrator and nothing is measured for me | This is intended: the script does not load for administration profiles or on administration pages. |
+
+## See also
+
+- Data Consent — user manual
 
 ## Support
 
