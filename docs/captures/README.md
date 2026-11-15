@@ -1,12 +1,16 @@
 # Captures d'écran
 
 Produites par le banc navigateur (`capture.js`, Puppeteer + Chrome dans le conteneur
-`puppeteer-test`) contre un banc GLPI 11 de test. **Jamais prises à
+`puppeteer-test`) contre un banc GLPI 11 de test (la ligne `glpi-12` a la même interface ; les captures sont communes). **Jamais prises à
 la main.**
 
 | Fichier | Ce qu'il montre |
 |---|---|
 | `01-settings.png` | La page de réglages : URL du conteneur (fictive), suivi de l'écran de connexion activé, identité en mode *pseudonyme*. |
+| `02-reglages-defaut.png` | La même page avec les valeurs par défaut : suivi de l'écran de connexion décoché, identité *Ne pas envoyer*. Produite par le script de manuel du banc. |
+
+Chaque image est déclarée, avec ses titres et textes alternatifs français et anglais, dans
+[`captures.toml`](captures.toml).
 
 Le script sert aussi de test en vrai navigateur. Il échoue :
 - si MTM ne démarre pas sur l'écran de connexion ;
@@ -35,4 +39,10 @@ podman cp docs/captures/capture.js puppeteer-test:/app/scripts/matomo/capture.js
 podman exec -e GLPI_URL -e GLPI_USER -e GLPI_PASS -e TRACKED_USER -e TRACKED_PASS -e OUT \
   puppeteer-test node /app/scripts/matomo/capture.js
 podman cp puppeteer-test:/app/screenshots/matomo/01-settings.png docs/captures/
+```
+
+La seconde image se refait avec le script de manuel du banc (mêmes variables, sans `TRACKED_*`) :
+
+```bash
+podman exec -e GLPI_URL -e GLPI_USER -e GLPI_PASS puppeteer-test node /app/scripts/manuels/matomo.js
 ```
