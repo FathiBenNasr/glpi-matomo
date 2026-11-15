@@ -1,0 +1,22 @@
+# Manifeste des captures de Matomo Tag Manager.
+# Une entrée [[capture]] par image de ce dossier. Lu par audit_doc.py, et plus tard par
+# l'assembleur du manuel. Aucune n'est prise à la main : 01 vient de capture.js, 02 du script
+# de manuel du banc. Données fictives (adresses en example.com / .test).
+
+[[capture]]
+id = "reglages-pseudonyme"
+fichier = "01-settings.png"
+document = "docs/GUIDE.md#activer-lidentité-pseudonymisée"
+variante = "clair"
+commande = "podman exec -e GLPI_URL -e GLPI_USER -e GLPI_PASS -e OUT puppeteer-test node /app/scripts/matomo/capture.js"
+titre = { fr = "La page de réglages, mode pseudonyme", en = "The settings page, pseudonym mode" }
+alt = { fr = "La page de réglages Matomo Tag Manager : URL du conteneur fictive, suivi de l'écran de connexion coché, identité réglée sur Pseudonyme (stable, non réversible)", en = "The Matomo Tag Manager settings page: a fictitious container URL, the login-screen tracking box ticked, identity set to Pseudonym (stable, not reversible)" }
+
+[[capture]]
+id = "reglages-defaut"
+fichier = "02-reglages-defaut.png"
+document = "docs/GUIDE.md#renseigner-lurl-du-conteneur"
+variante = "clair"
+commande = "podman exec -e GLPI_URL -e GLPI_USER -e GLPI_PASS puppeteer-test node /app/scripts/manuels/matomo.js"
+titre = { fr = "La page de réglages, valeurs par défaut", en = "The settings page, default values" }
+alt = { fr = "La page de réglages avec une URL de conteneur fictive, le suivi de l'écran de connexion décoché et l'identité réglée sur Ne pas envoyer", en = "The settings page with a fictitious container URL, the login-screen tracking box unticked and the identity set to Do not send" }
