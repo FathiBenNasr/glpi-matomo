@@ -1,6 +1,6 @@
 # Matomo Tag Manager — manuel d'utilisation
 
-Version déployée : **1.0.5**
+Version déployée : **1.0.6**
 
 ## À quoi sert le greffon
 
