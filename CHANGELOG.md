@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+Documentation only; the plugin code and version (1.0.6) are unchanged.
+
+### Documentation
+- Documentation brought to the Convergent standard: French `README.md` and English `README.en.md`, user guide and
+  administration guide in both languages, architecture (Mermaid), security analysis (OWASP Top 10 / ASVS level 2),
+  ADRs, `SECURITY.md`, and a manifest for the settings-page screenshot.
+- Test counts corrected in the README (46 PHP tests, 9 loader tests).
+
 ## [1.0.6] — 2026-10-25
 
 Hardening release. **Reinstall after upgrading** (`sudo -u apache php bin/console plugin:install --force matomo`).

@@ -1,121 +1,151 @@
-# Matomo Tag Manager — inject a Matomo container into GLPI pages
+# Matomo Tag Manager — injecter un conteneur Matomo dans les pages de GLPI
 
-![Settings page](docs/captures/01-settings.png)
+**Français** · [English](README.en.md)
 
-Inject a [Matomo Tag Manager](https://matomo.org/guide/tag-manager/) container into GLPI with zero code changes — just paste your container URL in the plugin settings. The container is loaded on the pages shown to logged-in users (standard and simplified interfaces) — never for administrators nor on administration pages — and, if you switch it on, on the login screen and the other anonymous pages. It can optionally tell Matomo **who** the logged-in user is.
+![Page de réglages du greffon Matomo Tag Manager dans GLPI : champ de l'URL du conteneur rempli avec une adresse d'exemple, case du suivi de l'écran de connexion cochée, liste d'identité réglée sur Pseudonyme, et bouton Enregistrer](docs/captures/01-settings.png)
 
-## Features
+> Un greffon de [GLPI](https://glpi-project.org/) qui charge un conteneur [Matomo Tag Manager](https://matomo.org/guide/tag-manager/)
+> dans les pages des utilisateurs connectés, sans modifier le code : on colle l'URL du conteneur dans les réglages. Il
+> peut aussi dire à Matomo **qui** est l'utilisateur, par un pseudonyme ou par son identifiant GLPI.
 
-- Loads your Matomo Tag Manager container on the pages of logged-in users, and optionally on the login screen (off by default)
-- **Optional user identity** pushed to the MTM data layer as `glpiUserId`: a non-reversible pseudonym, or the GLPI login (see *Privacy*)
-- Configured entirely from the GLPI admin panel — no file or template editing
-- Native GLPI plugin hooks + one small static JS loader; asynchronous, zero perceptible overhead
-- No custom database table — settings live in GLPI's own configuration store
+Le conteneur n'est **jamais** chargé pour un administrateur ni sur une page d'administration : il s'exécute avec les
+droits de l'origine GLPI, et quiconque peut le publier ne doit pas agir en administrateur.
 
-## Requirements
+## Fonctionnalités
 
-| Requirement | Version |
-|-------------|---------|
-| GLPI        | 11.x → plugin 1.0.x · 12.x → plugin 1.1.x · 10.x → plugin 1.0.0 (login screen and identity not available) |
-| PHP         | ≥ 8.2 |
-| Matomo      | A reachable Matomo Tag Manager container URL |
+- Charge le conteneur Matomo Tag Manager sur les pages des utilisateurs connectés (interface standard et simplifiée),
+  et, en option, sur l'écran de connexion (désactivé par défaut).
+- **Identité facultative** poussée dans la couche de données MTM sous le nom `glpiUserId` : un pseudonyme non
+  réversible, ou l'identifiant GLPI (voir *Vie privée*).
+- Se règle entièrement depuis le panneau d'administration de GLPI : aucun fichier ni gabarit à éditer.
+- Crochets natifs de GLPI et un petit chargeur JavaScript statique, asynchrone.
+- Aucune table de base de données : les réglages vivent dans le magasin de configuration de GLPI.
+
+## Prérequis
+
+| Prérequis | Version |
+|-----------|---------|
+| GLPI | 11.x pour ce dépôt (`setup.php` : de 11.0.0 à 11.99.99). Les lignes 12.x (greffon 1.1.x) et 10.x (greffon 1.0.0) existent dans l'historique et sur d'autres branches |
+| PHP | 8.2 ou plus, selon l'ancien README du dépôt (à vérifier : `setup.php` ne le déclare pas) |
+| Matomo | l'URL d'un conteneur Matomo Tag Manager joignable par les navigateurs |
 
 ## Installation
 
-1. Download the latest release archive from the [Releases](https://github.com/FathiBenNasr/glpi-matomo/releases) page (or install it from git with the **Git Plugin Installer** plugin).
-2. Extract into your GLPI `plugins/` directory so the path is `plugins/matomo/`.
-3. Install & enable as the web user, or via the UI (**Setup → Plugins → Matomo Tag Manager → Install → Enable**):
+1. Télécharger l'archive de la dernière version sur la page des [versions](https://github.com/FathiBenNasr/glpi-matomo/releases),
+   ou l'installer depuis Git avec le greffon **Git Plugin Installer**.
+2. L'extraire dans le dossier `plugins/` de GLPI, de sorte que le chemin soit `plugins/matomo/`.
+3. L'installer et l'activer sous l'identité du serveur web, ou par l'interface
+   (**Configuration → Plugins → Matomo Tag Manager → Installer → Activer**) :
    ```bash
    sudo -u apache php bin/console plugin:install matomo
    sudo -u apache php bin/console plugin:activate matomo
    sudo -u apache php bin/console cache:clear
    ```
 
-## Usage
-
-1. Go to **Setup → Matomo Tag Manager**.
-2. Paste your Matomo Tag Manager **Container URL** (e.g. `https://stats.example.com/js/container_XXXXXXXX.js`).
-3. Choose whether to track the login screen, and which **identity** to send (default: none).
-4. Click **Save** — the container is injected on the next page load and tracking starts immediately.
-
-To use the identity in Matomo: in Tag Manager, create a *Data-Layer* variable named `glpiUserId`, then set it as the **User ID** of your *Matomo Configuration* variable.
+Jamais `bin/console` en `root` : il crée des caches que le serveur web ne peut plus écrire. Procédure détaillée :
+[docs/ADMINISTRATION.md](docs/ADMINISTRATION.md).
 
 ## Configuration
 
-| Setting | Description |
-|---------|-------------|
-| Container URL | Full HTTPS URL to your MTM container JS (`https://…/js/container_XXXXXXXX.js`). Only the shape of an MTM container is accepted: `https://`, a host, no credentials, query or fragment, a path ending in `/container_<id>.js`. Empty = tracking off. |
-| Track the login screen | Also load the container on anonymous pages (login, password reset). **Off by default** (since 1.0.5 / 1.1.3). No identity is ever sent there, and a URL carrying a token (password reset link…) is never tracked. |
-| Identity of the logged-in user | **Do not send** (default) · **Pseudonym** — HMAC-SHA256 of the GLPI user id keyed with a random salt of the plugin, stored encrypted with the GLPI key: stable, not reversible, meaningless outside your instance · **GLPI login** — in clear. |
+| Réglage | Défaut | Effet |
+|---------|--------|-------|
+| URL du conteneur | vide (suivi désactivé) | URL HTTPS complète du script du conteneur (`https://…/js/container_XXXXXXXX.js`). Seule la forme d'un conteneur MTM est acceptée : `https://`, un hôte, ni identifiants, ni requête, ni fragment, un chemin qui finit par `/container_<id>.js`. |
+| Suivre aussi l'écran de connexion | désactivé | Charge le conteneur sur les pages anonymes (connexion, mot de passe oublié). Aucune identité n'y est jamais envoyée, et une URL qui porte un jeton n'est jamais suivie. |
+| Identité de l'utilisateur connecté | ne pas envoyer | **Pseudonyme** : HMAC-SHA256 de l'identifiant GLPI, avec un sel aléatoire propre au greffon et chiffré par la clé de GLPI. **Identifiant GLPI** : en clair. |
 
-The value is stored in GLPI's core configuration store under the `plugin:matomo` context (no dedicated plugin table is created).
+Les valeurs sont rangées dans le contexte `plugin:matomo` de la configuration de GLPI. Pour utiliser l'identité dans
+Matomo : dans Tag Manager, créer une variable de couche de données `glpiUserId`, puis la donner comme **User ID** à
+la variable *Matomo Configuration*.
 
-**Upgrading to 1.0.5 / 1.1.3 requires a reinstall** (`plugin:install --force matomo`, as the web user): the install creates the pseudonym salt. Until then the pseudonym mode sends no identity (it fails closed). Pseudonyms produced by 1.0.3 / 1.1.1 change once.
+## Utilisation
 
-## Privacy
+1. Ouvrir **Configuration → Plugins**, puis le lien de configuration de **Matomo Tag Manager**.
+2. Coller l'**URL du conteneur** Matomo Tag Manager (ex. `https://stats.example.com/js/container_XXXXXXXX.js`).
+3. Choisir de suivre ou non l'écran de connexion, et l'**identité** à envoyer (par défaut : aucune).
+4. Cliquer sur **Enregistrer** : le conteneur est chargé dès la page suivante.
 
-Sending an identity to Matomo links every visit to a person: under the GDPR (and the Tunisian law 2004-63) the **pseudonym is still personal data**, the login even more so. Before enabling either: have a legal basis, inform your users (and update your privacy notice), keep Matomo self-hosted if you can, and prefer the pseudonym. The identity is never sent on anonymous pages, and the setting fails closed: without the plugin's salt no pseudonym is produced, and there is never a fallback to the login. On the Matomo side, enable IP anonymisation, honour *Do Not Track* or offer an opt-out, and exclude the query parameters `password_forget_token`, `token` and `_glpi_csrf_token` in the site settings.
+Pas à pas, avec la capture : [docs/GUIDE.md](docs/GUIDE.md).
 
-## Permissions
+## Captures
 
-Configuration requires the GLPI core **`config: UPDATE`** right (typically the full-administrator profile) — the same right that protects GLPI's general setup. The plugin registers **no custom right** and writes only to GLPI's configuration store.
+![Page de réglages : URL du conteneur, suivi de l'écran de connexion et mode d'identité](docs/captures/01-settings.png)
+
+La page de réglages, engendrée par le banc navigateur contre un GLPI jetable, avec une URL de conteneur fictive :
+[docs/captures/](docs/captures/README.md).
 
 ## Architecture
 
-- The plugin passes its settings as `<meta>` tags through GLPI's `add_header_tag` / `add_header_tag_anonymous_page` hooks (escaped by GLPI's template), and loads one static script, `public/js/mtm-loader.js`, through `add_javascript` / `add_javascript_anonymous_page`. The loader reads the tags, pushes `glpiUserId` when present, then starts MTM.
-- Settings are read from GLPI's core config (`plugin:matomo` context: `container_url`, `track_anonymous`, `user_id_mode`, `pseudonym_salt` encrypted) — no plugin database table, no per-asset data, and no file written at runtime.
-- The configuration form posts through GLPI 11's CSRF-protected front controller.
+```mermaid
+flowchart LR
+    A[Administrateur : Configuration → Matomo Tag Manager] -->|URL du conteneur, options| C[(Magasin de configuration de GLPI<br/>contexte plugin:matomo)]
+    C --> H[setup.php<br/>contrôles de droits et d'URL]
+    H -->|balises meta, crochets d'en-tête| P[Page GLPI]
+    P --> L[mtm-loader.js<br/>second contrôle]
+    L -->|charge le conteneur| M[Conteneur Matomo<br/>Tag Manager]
+```
 
-## Security
+Le greffon passe ses réglages en balises `<meta>` par les crochets `add_header_tag` et
+`add_header_tag_anonymous_page` (échappées par le gabarit de GLPI), et charge un script statique,
+`public/js/mtm-loader.js`. Le détail est dans [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-**Trust boundary.** A Matomo Tag Manager container is third-party code that its publishers can change at any time; it runs with the privileges of the GLPI origin. Whoever can publish in your MTM container — or compromises your Matomo host — can act as any user whose page loads it. The plugin therefore:
+## Sécurité
 
-- never loads the container for a session holding `config`, `profile` or `user` **UPDATE** in any of its profiles (administrators, even when browsing under another profile), nor on administration pages (setup, profiles, users, preferences with API tokens, authentication, plugins, rules, notifications…); a right check that fails counts as privileged;
-- never loads it on a URL carrying a secret (`password_forget_token`, any `*token*`, `*passw*`, `*secret*`, `code`, `state` parameter), nor on a page whose referrer carries one, so a password-reset link never reaches Matomo's visit log;
-- re-checks both conditions in the loader, as a second layer.
+Un conteneur Matomo Tag Manager est du **code tiers modifiable à tout moment** par ceux qui le publient ; il s'exécute
+avec les droits de l'origine GLPI. Le greffon :
 
-What remains is yours to decide: restrict *Publish* rights on the MTM container to the owner, and set a Content Security Policy on the GLPI virtual host, for example `Content-Security-Policy: script-src 'self' https://stats.example.com; object-src 'none'; base-uri 'self'`. A static `matomo.js` tracker pinned with an integrity hash (SRI) would remove the risk altogether, at the cost of Tag Manager's flexibility.
+- ne le charge jamais pour une session qui détient `config`, `profile` ou `user` en mise à jour (dans n'importe lequel
+  de ses profils), ni sur les pages d'administration, ni pendant une usurpation d'identité ; un contrôle de droit qui
+  échoue vaut « privilégié » ;
+- ne le charge jamais sur une URL portant un secret (`password_forget_token`, `*token*`, `*passw*`, `*secret*`,
+  `code`, `state`), ni sur une page dont le référent en porte un ;
+- refait ces contrôles dans le chargeur, en seconde couche ;
+- n'accepte qu'une URL de conteneur HTTPS de la forme attendue, à l'enregistrement puis à l'émission.
 
-- The container URL must have the shape of an MTM container (`https://host/…/container_<id>.js`, no credentials, query or fragment) before being saved, and again before being emitted.
-- Settings reach the page as data only: escaped `<meta>` attributes, never JavaScript; the loader refuses a container of any other shape.
-- The identity mode is whitelisted; an unknown stored value falls back to *Do not send*.
-- The configuration page is gated by `config: UPDATE` and protected by GLPI 11's CSRF listener.
-- The plugin reads/writes only GLPI's own configuration store — it touches no core or third-party tables.
+Reste à la charge de l'exploitant : limiter le droit de *publier* du conteneur, et poser une politique CSP sur l'hôte
+virtuel de GLPI. Analyse complète : [docs/SECURITE.md](docs/SECURITE.md). Signaler une faille : [SECURITY.md](SECURITY.md).
 
-## Screenshots
+### Vie privée
 
-Generated by the browser bench, see [docs/captures/](docs/captures/README.md).
+Envoyer une identité à Matomo relie chaque visite à une personne : au sens du RGPD et de la loi tunisienne 2004-63,
+le **pseudonyme reste une donnée personnelle**, l'identifiant GLPI davantage. Avant de l'activer : disposer d'une base
+légale, informer les utilisateurs, auto-héberger Matomo si possible, préférer le pseudonyme. L'identité n'est jamais
+envoyée sur une page anonyme, et sans le sel du greffon aucun pseudonyme n'est produit (jamais de repli sur
+l'identifiant). Côté Matomo : activer l'anonymisation des adresses IP et exclure les paramètres `password_forget_token`,
+`token` et `_glpi_csrf_token`.
 
 ## Tests
 
 ```bash
-php tests/run.php            # or: phpunit --no-configuration tests/  (44 tests)
-node --test tests/*.test.js  # the real loader, in a vm sandbox      (9 tests)
+php tests/run.php            # ou : phpunit --no-configuration tests/  (46 tests)
+node --test tests/*.test.js  # le vrai chargeur, dans un bac à sable vm (9 tests)
 ```
 
-## Changelog
+## Dépannage
 
-See [CHANGELOG.md](CHANGELOG.md).
+| Symptôme | Cause | Remède |
+|----------|-------|--------|
+| Rien ne se charge pour moi, administrateur | Voulu : pas de conteneur tiers pour une session qui détient `config`, `profile` ou `user` en mise à jour, ni sur les pages d'administration | Tester avec un compte sans droit d'administration |
+| « Container URL must be an https:// Matomo Tag Manager container » à l'enregistrement | L'URL n'a pas la forme `https://hôte/…/container_<id>.js` (ni identifiants, ni requête, ni fragment) | Recopier l'URL de la page *Code d'installation* de Matomo et retirer ce qui suit `.js` |
+| Le mode pseudonyme n'envoie aucune identité | Le sel du greffon n'existe pas (montée de version sans réinstallation) : le greffon échoue fermé | `sudo -u apache php bin/console plugin:install --force matomo` |
+| Toutes les pages du greffon répondent 404 après une montée de version | GLPI a désactivé le greffon : la version du code ne correspond plus à celle enregistrée | Réinstaller comme ci-dessus, puis `plugin:activate matomo` |
+| Rien sur l'écran de connexion | Le suivi des pages anonymes est désactivé par défaut, ou l'URL porte un jeton | Cocher **Suivre aussi l'écran de connexion…** |
 
-## Support
+Autres cas : [docs/ADMINISTRATION.md](docs/ADMINISTRATION.md#dépannage).
 
-Report bugs and request features on the [issue tracker](https://github.com/FathiBenNasr/glpi-matomo/issues).
+## Documentation
 
-## License
+- [Guide d'utilisation](docs/GUIDE.md) · [Administration](docs/ADMINISTRATION.md)
+- [Architecture](docs/ARCHITECTURE.md) · [Sécurité](docs/SECURITE.md) · [Signaler une faille](SECURITY.md)
 
-Distributed under the [GNU GPL v2.0-or-later](LICENSE) license.
+## Historique
 
----
+Voir [CHANGELOG.md](CHANGELOG.md) (en anglais).
 
-<div align="center">
+## Licence
 
-## Developed by
+SPDX : `GPL-2.0-or-later` — voir [LICENSE](LICENSE).
 
-[![Convergent Cloud Computing](https://www.convergent.tn/assets/images/convergent-logo.png)](https://www.convergent.tn)
+## Auteur
 
-**[Convergent Cloud Computing](https://www.convergent.tn)**  
-Cloud infrastructure, open-source integration, and cybersecurity solutions for Tunisian and international businesses.
-
-📧 contact@convergent.tn | 🌐 [www.convergent.tn](https://www.convergent.tn)
-
-</div>
+[Convergent Cloud Computing](https://www.convergent.tn) — contact@convergent.tn. Anomalies et demandes :
+[suivi des tickets](https://github.com/FathiBenNasr/glpi-matomo/issues).

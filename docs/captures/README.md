@@ -1,4 +1,6 @@
-# Captures d'écran
+# Captures d'écran — GLPI-matomo
+
+Chaque capture est déclarée dans [captures.toml](captures.toml).
 
 Produites par le banc navigateur (`capture.js`, Puppeteer + Chrome dans le conteneur
 `puppeteer-test`) contre un banc GLPI 11 de test. **Jamais prises à

@@ -1,0 +1,11 @@
+# Manifeste des captures de GLPI-matomo.
+# Une entrée [[capture]] par image de ce dossier. Champs obligatoires : fichier, titre.fr/en, alt.fr/en, commande.
+
+[[capture]]
+id = "reglages"
+fichier = "01-settings.png"
+document = "docs/GUIDE.md#régler-le-conteneur"
+variante = "claire"
+commande = "podman cp docs/captures/capture.js puppeteer-test:/app/scripts/matomo/capture.js && podman exec -e GLPI_URL -e GLPI_USER -e GLPI_PASS -e TRACKED_USER -e TRACKED_PASS -e OUT puppeteer-test node /app/scripts/matomo/capture.js"
+titre = { fr = "La page de réglages", en = "The settings page" }
+alt = { fr = "Page de réglages du greffon : champ de l'URL du conteneur rempli avec une adresse d'exemple, case du suivi de l'écran de connexion cochée, liste d'identité réglée sur Pseudonyme, et bouton Enregistrer", en = "Plugin settings page: container URL field filled with an example address, the box to track the login screen ticked, the identity list set to Pseudonym, and the Save button" }

@@ -1,0 +1,8 @@
+# Profil de documentation, lu par audit_doc.py (dépôt convergent-modele-doc).
+# Il dit quelles exigences du standard s'appliquent à ce dépôt : voir docs/STANDARD.md.
+
+profil = "greffon"          # greffon | application | service | documents | hors-perimetre
+parent = "glpi"          # glpi | snappymail | cyrus | aucun
+interface = true      # true si le dépôt dessine un écran : captures et guide exigés
+modele_donnees = false    # true si classes ou tables : diagramme de classes ou E-R exigé
+licence = "GPL-2.0-or-later"        # identifiant SPDX, identique au fichier LICENSE
