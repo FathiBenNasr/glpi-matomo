@@ -20,7 +20,7 @@ Inject a [Matomo Tag Manager](https://matomo.org/guide/tag-manager/) container i
 |-------------|---------|
 | GLPI        | 11.x → plugin 1.0.x · 12.x → plugin 1.1.x · 10.x → plugin 1.0.0 (login screen and identity not available) |
 | PHP         | ≥ 8.2 |
-| Matomo      | A reachable Matomo Tag Manager container URL |
+| Matomo      | 5.x or 6.x: a reachable Matomo Tag Manager container URL. The plugin never calls the Matomo API; it only loads the container and feeds `_mtm`, and Matomo 6 changes neither |
 
 ## Installation
 

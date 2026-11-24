@@ -27,7 +27,7 @@ droits de l'origine GLPI, et quiconque peut le publier ne doit pas agir en admin
 |-----------|---------|
 | GLPI | 11.x pour ce dépôt (`setup.php` : de 11.0.0 à 11.99.99). Les lignes 12.x (greffon 1.1.x) et 10.x (greffon 1.0.0) existent dans l'historique et sur d'autres branches |
 | PHP | 8.2 ou plus, selon l'ancien README du dépôt (à vérifier : `setup.php` ne le déclare pas) |
-| Matomo | l'URL d'un conteneur Matomo Tag Manager joignable par les navigateurs |
+| Matomo | 5.x ou 6.x : l'URL d'un conteneur Matomo Tag Manager joignable par les navigateurs. Le greffon n'appelle pas l'API de Matomo, il charge seulement le conteneur et alimente `_mtm`, et Matomo 6 ne change ni l'un ni l'autre |
 
 ## Installation
 

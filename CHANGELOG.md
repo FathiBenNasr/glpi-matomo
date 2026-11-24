@@ -9,6 +9,9 @@ Documentation only; the plugin code and version (1.0.6) are unchanged.
   administration guide in both languages, architecture (Mermaid), security analysis (OWASP Top 10 / ASVS level 2),
   ADRs, `SECURITY.md`, and a manifest for the settings-page screenshot.
 - Test counts corrected in the README (46 PHP tests, 9 loader tests).
+- Matomo 6 compatibility stated in the requirements: the plugin only loads the Tag Manager container and pushes to
+  `_mtm`, neither of which Matomo 6.0.0 changes. Note that Matomo 6 now blocks headless-browser traffic by default,
+  so the headless screenshot bench no longer shows up in Matomo's stats.
 
 ## [1.0.6] — 2026-10-25
 
